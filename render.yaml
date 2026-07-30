@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: civimind-ai
+    env: node
+    region: singapore # Change this in the Render dashboard if you prefer another region
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x # Or your preferred Node version
+      - key: GEMINI_API_KEY
+        sync: false # You will need to input this manually in the Render Dashboard for security
