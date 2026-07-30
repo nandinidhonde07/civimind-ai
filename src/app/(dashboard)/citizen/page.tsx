@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Sparkles, MapPin, Camera, CheckCircle2, Clock, Image as ImageIcon, 
   Send, AlertTriangle, ShieldCheck, Users, ShieldAlert, BarChart3, Building2,
-  ChevronRight, BrainCircuit
+  ChevronRight, BrainCircuit, Bell, SwitchCamera
 } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { useStore, Priority } from '@/lib/store';
@@ -34,6 +34,7 @@ interface AIResult {
 export default function CitizenDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -41,6 +42,7 @@ export default function CitizenDashboard() {
   const [gpsData, setGpsData] = useState<{lat: number, lng: number, acc: number} | null>(null);
   const [hasImage, setHasImage] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const [aiResult, setAiResult] = useState<AIResult | null>(null);
@@ -51,8 +53,16 @@ export default function CitizenDashboard() {
   const complaints = useStore(state => state.complaints);
   const seedData = useStore(state => state.seedData);
 
+  // Notifications Mock
+  const unreadNotifications = complaints.slice(0, 3).map(c => ({
+    id: c.id,
+    title: `Update on ${c.id}`,
+    message: `Your report "${c.title}" has been updated to ${c.status}.`,
+    time: 'Just now'
+  }));
+
   useEffect(() => {
-    seedData(); // Seed data on first load if empty
+    seedData();
   }, [seedData]);
 
   const handleGPS = () => {
@@ -68,9 +78,12 @@ export default function CitizenDashboard() {
     }
   };
 
-  const startCamera = async () => {
+  const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
+    if (stream) stream.getTracks().forEach(track => track.stop());
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: mode } 
+      });
       setStream(mediaStream);
       setHasImage(true);
       if (videoRef.current) {
@@ -78,8 +91,13 @@ export default function CitizenDashboard() {
       }
     } catch {
       toast.error("Camera access denied or unavailable.");
-      console.log("Camera access denied or unavailable, fallback to upload");
     }
+  };
+
+  const toggleCamera = () => {
+    const newMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(newMode);
+    startCamera(newMode);
   };
 
   const stopCamera = () => {
@@ -94,35 +112,48 @@ export default function CitizenDashboard() {
     toast.success("Media attached successfully");
   };
 
-  // -------------------------------------------------------------
-  // LOCAL AI SIMULATION
-  // -------------------------------------------------------------
   const simulateAI = (text: string) => {
     const lower = text.toLowerCase();
     
     let department = 'General Services';
     let category = 'Other';
     let priority: Priority = 'Low';
+    let detectedIssue = 'Unknown Issue';
     
     if (lower.includes('road') || lower.includes('pothole') || lower.includes('street')) {
       department = 'Public Works';
       category = 'Roadways';
+      detectedIssue = 'Pavement Damage Detected';
       priority = lower.includes('massive') || lower.includes('huge') ? 'Critical' : 'High';
-    } else if (lower.includes('garbage') || lower.includes('waste') || lower.includes('trash')) {
+    } else if (lower.includes('garbage') || lower.includes('waste') || lower.includes('trash') || lower.includes('dump')) {
       department = 'Sanitation';
       category = 'Waste Management';
+      detectedIssue = 'Unsanitary Waste Accumulation';
       priority = 'Medium';
     } else if (lower.includes('water') || lower.includes('pipe') || lower.includes('leak')) {
       department = 'Water Board';
       category = 'Plumbing';
+      detectedIssue = 'Active Water Leakage';
       priority = 'Critical';
     } else if (lower.includes('tree') || lower.includes('branch') || lower.includes('forest')) {
       department = 'Forestry';
       category = 'Environment';
+      detectedIssue = 'Fallen Tree/Branch';
       priority = 'High';
     } else if (lower.includes('light') || lower.includes('wire') || lower.includes('electricity') || lower.includes('power')) {
       department = 'Electricity';
       category = 'Electrical';
+      detectedIssue = 'Electrical Infrastructure Failure';
+      priority = 'High';
+    } else if (lower.includes('traffic') || lower.includes('signal')) {
+      department = 'Traffic';
+      category = 'Transportation';
+      detectedIssue = 'Traffic Signal Malfunction';
+      priority = 'Critical';
+    } else if (lower.includes('health') || lower.includes('mosquito') || lower.includes('disease')) {
+      department = 'Public Health';
+      category = 'Health & Safety';
+      detectedIssue = 'Public Health Hazard';
       priority = 'High';
     }
 
@@ -135,7 +166,7 @@ export default function CitizenDashboard() {
       imageVerification: {
         validImage: hasImage,
         confidence: hasImage ? 98 : 0,
-        detectedIssue: category
+        detectedIssue: hasImage ? detectedIssue : 'No Visual Confirmation'
       },
       departmentsRequired: [department]
     };
@@ -147,7 +178,6 @@ export default function CitizenDashboard() {
     stopCamera();
     
     try {
-      // Simulate network/AI delay for realistic UX
       await new Promise(r => setTimeout(r, 1500));
       
       const result = simulateAI(title + " " + description);
@@ -160,7 +190,6 @@ export default function CitizenDashboard() {
       const finalScore = Math.min(100, score);
       setAuthenticityScore(finalScore);
       
-      // Add to Zustand Store
       const newId = addComplaint({
         title,
         description,
@@ -176,27 +205,62 @@ export default function CitizenDashboard() {
 
       toast.success(`Complaint Submitted Successfully! ID: ${newId}`);
       setIsSubmitted(true);
-    } catch (error) {
+    } catch {
       toast.error("Failed to submit complaint.");
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Calculations for Transparency Tab
   const totalComplaints = complaints.length;
   const resolvedComplaints = complaints.filter(c => c.status === 'Resolved').length;
   const satisfactionRate = totalComplaints > 0 ? Math.round((resolvedComplaints / totalComplaints) * 100) || 92 : 92;
   
-  // Get most recent complaint for tracker (we'll just use the first one in the store for demo purposes)
   const latestComplaint = complaints[0];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Citizen Command Portal</h1>
-        <p className="text-slate-500 mt-2 font-medium">Submit secure, verifiable reports directly to the Government AI Engine.</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Citizen Command Portal</h1>
+          <p className="text-slate-500 mt-2 font-medium">Submit secure, verifiable reports directly to the Government AI Engine.</p>
+        </div>
+        
+        <div className="relative">
+          <Button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            variant="outline" 
+            size="icon" 
+            className="relative h-12 w-12 rounded-xl bg-white border-slate-200 shadow-sm text-slate-600 hover:bg-slate-50"
+          >
+            <Bell className="w-5 h-5" />
+            {unreadNotifications.length > 0 && (
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+            )}
+          </Button>
+          
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="bg-slate-50 border-b border-slate-100 p-4 rounded-t-2xl">
+                <h4 className="font-bold text-slate-800 text-sm">Real-time Updates</h4>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+                {unreadNotifications.map((notif, i) => (
+                  <div key={i} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-bold text-slate-800 text-xs">{notif.title}</span>
+                      <span className="text-[10px] font-bold text-[#6BAED6] uppercase tracking-wider">{notif.time}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">{notif.message}</p>
+                  </div>
+                ))}
+                {unreadNotifications.length === 0 && (
+                  <div className="p-6 text-center text-sm text-slate-400 font-medium">No new notifications</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <Tabs value={isSubmitted ? "history" : undefined} defaultValue="submit" className="w-full">
@@ -240,11 +304,16 @@ export default function CitizenDashboard() {
                    <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Photographic Evidence</Label>
                       <div className="flex gap-2">
-                        <Button type="button" variant="outline" className="w-full border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold h-12 rounded-xl shadow-sm" onClick={startCamera}>
-                          <Camera className="mr-2 w-4 h-4"/> Live Capture
-                        </Button>
+                        <div className="flex w-full relative">
+                          <Button type="button" variant="outline" className="w-full border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold h-12 rounded-xl rounded-r-none border-r-0 shadow-sm" onClick={() => startCamera()}>
+                            <Camera className="mr-2 w-4 h-4"/> Live Capture
+                          </Button>
+                          <Button type="button" variant="outline" className="px-3 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold h-12 rounded-xl rounded-l-none shadow-sm" onClick={toggleCamera}>
+                            <SwitchCamera className="w-4 h-4"/>
+                          </Button>
+                        </div>
                         <Button type="button" variant="outline" className="w-full border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold h-12 rounded-xl shadow-sm" onClick={handleUpload}>
-                          <ImageIcon className="mr-2 w-4 h-4"/> Upload Media
+                          <ImageIcon className="mr-2 w-4 h-4"/> Gallery
                         </Button>
                       </div>
                    </div>
@@ -279,6 +348,7 @@ export default function CitizenDashboard() {
           </Card>
         </TabsContent>
 
+        {/* The rest is exactly the same, intact design */}
         <TabsContent value="history" className="mt-6">
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
              
@@ -385,7 +455,6 @@ export default function CitizenDashboard() {
                       <Badge className={`${latestComplaint.status === 'Resolved' ? 'bg-[#22C55E]' : latestComplaint.status.includes('Progress') ? 'bg-[#F59E0B]' : 'bg-[#6BAED6]'} text-white shadow-sm font-bold`}>{latestComplaint.status}</Badge>
                     </div>
                     
-                    {/* Professional Timeline Component */}
                     <div className="max-w-2xl mx-auto space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
                        
                        {latestComplaint.timeline.map((event, index) => {
@@ -430,7 +499,6 @@ export default function CitizenDashboard() {
           </div>
         </TabsContent>
         
-        {/* Public Transparency Dashboard */}
         <TabsContent value="transparency" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="bg-white border-slate-200 rounded-3xl shadow-md">

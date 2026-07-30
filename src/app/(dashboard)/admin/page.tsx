@@ -6,22 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  Users, Settings, Database, BrainCircuit, Activity, FileText, Search, Download, Trash2, Edit2
+  Users, Database, BrainCircuit, Activity, FileText, Search, Download, Edit2, TrendingUp, ShieldCheck
 } from 'lucide-react';
-import { Progress } from "@/components/ui/progress";
 import { useStore, ComplaintStatus } from '@/lib/store';
 import { toast } from 'sonner';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+} from 'recharts';
 
 export default function AdminDashboard() {
   const complaints = useStore(state => state.complaints);
-  const clearStore = useStore(state => state.clearStore);
   const updateStatus = useStore(state => state.updateStatus);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Dynamic mocked calculations
-  const aiTokens = (complaints.length * 1500 + 2400000).toLocaleString();
+  // Dynamic mocked calculations for header
+  const aiTokens = (complaints.length * 1500 + 24000).toLocaleString();
   const activeDepartments = new Set(complaints.map(c => c.department)).size || 1;
 
   const filteredComplaints = useMemo(() => {
@@ -60,12 +61,24 @@ export default function AdminDashboard() {
     setEditingId(null);
   };
 
-  const handlePurge = () => {
-    if (confirm("Are you sure you want to purge all global state? This will delete all complaints.")) {
-       clearStore();
-       toast.success("Database purged. Seed data will generate on next Citizen load.");
-    }
-  };
+  // Analytics Data
+  const departmentStats = useMemo(() => {
+    const deps = Array.from(new Set(complaints.map(c => c.department)));
+    return deps.map(dep => {
+      const depComplaints = complaints.filter(c => c.department === dep);
+      return {
+        name: dep,
+        resolved: depComplaints.filter(c => c.status === 'Resolved').length,
+        active: depComplaints.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected').length
+      }
+    });
+  }, [complaints]);
+
+  // Mocked trend data combined with real counts
+  const mockTrend = [
+    { day: 'Mon', volume: 12 + complaints.length }, { day: 'Tue', volume: 15 + complaints.length }, { day: 'Wed', volume: 18 + complaints.length },
+    { day: 'Thu', volume: 14 + complaints.length }, { day: 'Fri', volume: 20 + complaints.length }, { day: 'Sat', volume: 9 + complaints.length }, { day: 'Sun', volume: 8 + complaints.length }
+  ];
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
@@ -73,7 +86,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Super Admin Terminal</h1>
-          <p className="text-slate-500 mt-2 font-medium">Global system health, AI node status, and platform configuration.</p>
+          <p className="text-slate-500 mt-2 font-medium">Global system health, AI node status, and platform analytics.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={handleExportCSV} variant="outline" className="bg-white border-slate-200 text-slate-600 rounded-xl h-11 px-5 shadow-sm font-bold"><Download className="w-4 h-4 mr-2"/> Export Global Data</Button>
@@ -103,7 +116,7 @@ export default function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">API Health</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">System Uptime</p>
                 <h3 className="text-3xl font-black text-slate-800 tracking-tighter">99.9%</h3>
               </div>
               <div className="p-2.5 bg-[#22C55E]/10 rounded-xl text-[#22C55E]"><Activity className="w-5 h-5"/></div>
@@ -116,7 +129,7 @@ export default function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">AI Tokens Used</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">AI Tokens Consumed</p>
                 <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{aiTokens}</h3>
               </div>
               <div className="p-2.5 bg-yellow-100 rounded-xl text-yellow-600"><BrainCircuit className="w-5 h-5"/></div>
@@ -138,122 +151,121 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Main Complaints Table (Override capable) */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="border-b border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#F7FBFF]">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Database className="w-5 h-5 mr-2 text-[#6BAED6]"/> Global Incident Records</CardTitle>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                 <div className="relative w-full md:w-64">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                   <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search ID, Dept, Status..." className="pl-9 h-10 bg-white border-slate-200 rounded-xl text-sm font-medium focus-visible:ring-[#6BAED6] shadow-sm" />
-                 </div>
-              </div>
-            </CardHeader>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4">ID</th>
-                    <th className="px-6 py-4">Department</th>
-                    <th className="px-6 py-4">Priority</th>
-                    <th className="px-6 py-4">Status Override</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                  {filteredComplaints.map(c => (
-                    <tr key={c.id} className="hover:bg-[#F7FBFF] transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">{c.id}</td>
-                      <td className="px-6 py-4">{c.department}</td>
-                      <td className="px-6 py-4">
-                        <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'} border-none shadow-none font-bold`}>{c.priority}</Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        {editingId === c.id ? (
-                           <select 
-                             autoFocus
-                             defaultValue={c.status}
-                             onChange={(e) => handleStatusOverride(c.id, e)}
-                             onBlur={() => setEditingId(null)}
-                             className="bg-white border border-[#6BAED6] rounded px-2 py-1 text-sm outline-none w-full shadow-sm"
-                           >
-                             <option value="Pending Triage">Pending Triage</option>
-                             <option value="In Progress">In Progress</option>
-                             <option value="Resolved">Resolved</option>
-                             <option value="Rejected">Rejected</option>
-                           </select>
-                        ) : (
-                           <div 
-                             className="flex items-center justify-between cursor-pointer hover:bg-slate-100 p-1.5 -ml-1.5 rounded-lg transition-colors group"
-                             onClick={() => setEditingId(c.id)}
-                           >
-                             <Badge className={`${c.status === 'Resolved' ? 'bg-[#22C55E]/10 text-[#22C55E]' : c.status === 'Rejected' ? 'bg-red-100 text-red-600' : 'bg-[#DEEBF7] text-[#6BAED6]'} border-none shadow-none font-bold`}>
-                               {c.status}
-                             </Badge>
-                             <Edit2 className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredComplaints.length === 0 && (
-                    <tr><td colSpan={4} className="text-center py-6 text-slate-400">No records found.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
+      {/* Analytics Section replacing Storage/Settings */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
+          <CardHeader className="border-b border-slate-100 p-6 pb-4">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Activity className="w-5 h-5 mr-2 text-[#6BAED6]"/> Department Efficacy (Live)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={departmentStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12, fontWeight: 'bold'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold'}} />
+                <Legend iconType="circle" wrapperStyle={{fontSize: '12px', fontWeight: 'bold', color: '#64748B'}}/>
+                <Bar dataKey="resolved" name="Resolved" fill="#22C55E" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="active" name="Active" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        {/* System Settings & Storage */}
-        <div className="space-y-6">
-          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
-            <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-6">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Database className="w-5 h-5 mr-2 text-[#6BAED6]"/> Storage Capacity</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div>
-                <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                  <span>Image Blob Storage</span>
-                  <span>78%</span>
-                </div>
-                <Progress value={78} className="h-2 bg-slate-100 rounded-full [&>div]:bg-[#6BAED6]" />
-                <p className="text-xs text-slate-400 font-medium mt-2">7.8 TB / 10 TB used</p>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                  <span>Global State DB (Zustand)</span>
-                  <span className="text-[#22C55E]">{Math.min(complaints.length, 100)}%</span>
-                </div>
-                <Progress value={Math.min(complaints.length, 100)} className="h-2 bg-slate-100 rounded-full [&>div]:bg-[#22C55E]" />
-                <p className="text-xs text-slate-400 font-medium mt-2">{complaints.length} Records / Local Storage</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
-            <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-6">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Settings className="w-5 h-5 mr-2 text-[#6BAED6]"/> Global Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                 <div className="flex items-center gap-3">
-                   <div className="p-2 bg-white rounded-lg shadow-sm text-slate-500"><BrainCircuit className="w-4 h-4"/></div>
-                   <span className="text-sm font-bold text-slate-700">Auto-Routing AI</span>
-                 </div>
-                 <div className="w-10 h-6 bg-[#22C55E] rounded-full border-2 border-transparent relative transition-colors cursor-pointer">
-                   <div className="absolute right-0 top-0 w-5 h-5 bg-white rounded-full shadow"></div>
-                 </div>
-              </div>
-              <Button onClick={handlePurge} variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold h-12 rounded-xl mt-4">
-                 <Trash2 className="w-4 h-4 mr-2"/> Purge Global State (Hackathon Reset)
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
+          <CardHeader className="p-6 border-b border-slate-100">
+            <CardTitle className="text-lg font-bold text-slate-800 flex items-center tracking-tight"><TrendingUp className="w-5 h-5 mr-2 text-[#6BAED6]"/> 7-Day Complaint Volume</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 h-[300px]">
+             <ResponsiveContainer width="100%" height="100%">
+               <AreaChart data={mockTrend}>
+                 <defs>
+                   <linearGradient id="colorVolumeAdmin" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="5%" stopColor="#6BAED6" stopOpacity={0.3}/>
+                     <stop offset="95%" stopColor="#6BAED6" stopOpacity={0}/>
+                   </linearGradient>
+                 </defs>
+                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 10, fontWeight: 'bold'}} />
+                 <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                 <Area type="monotone" dataKey="volume" stroke="#6BAED6" strokeWidth={3} fillOpacity={1} fill="url(#colorVolumeAdmin)" />
+               </AreaChart>
+             </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Main Complaints Table (Override capable) */}
+      <Card className="bg-white border-slate-200 shadow-sm rounded-3xl overflow-hidden">
+        <CardHeader className="border-b border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#F7FBFF]">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Database className="w-5 h-5 mr-2 text-[#6BAED6]"/> Global Incident Records</CardTitle>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+             <div className="relative w-full md:w-64">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+               <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search ID, Dept, Status..." className="pl-9 h-10 bg-white border-slate-200 rounded-xl text-sm font-medium focus-visible:ring-[#6BAED6] shadow-sm" />
+             </div>
+          </div>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-6 py-4">ID</th>
+                <th className="px-6 py-4">Department</th>
+                <th className="px-6 py-4">Priority</th>
+                <th className="px-6 py-4">AI Verification</th>
+                <th className="px-6 py-4">Status Override</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+              {filteredComplaints.map(c => (
+                <tr key={c.id} className="hover:bg-[#F7FBFF] transition-colors">
+                  <td className="px-6 py-4 font-bold text-slate-800">{c.id}</td>
+                  <td className="px-6 py-4">{c.department}</td>
+                  <td className="px-6 py-4">
+                    <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'} border-none shadow-none font-bold`}>{c.priority}</Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                     <span className={`text-xs font-bold flex items-center ${c.authenticityScore >= 80 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>
+                       {c.authenticityScore >= 80 ? <ShieldCheck className="w-4 h-4 mr-1"/> : <Activity className="w-4 h-4 mr-1"/>}
+                       {c.authenticityScore}%
+                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === c.id ? (
+                       <select 
+                         autoFocus
+                         defaultValue={c.status}
+                         onChange={(e) => handleStatusOverride(c.id, e)}
+                         onBlur={() => setEditingId(null)}
+                         className="bg-white border border-[#6BAED6] rounded px-2 py-1 text-sm outline-none w-full shadow-sm"
+                       >
+                         <option value="Pending Triage">Pending Triage</option>
+                         <option value="In Progress">In Progress</option>
+                         <option value="Resolved">Resolved</option>
+                         <option value="Rejected">Rejected</option>
+                       </select>
+                    ) : (
+                       <div 
+                         className="flex items-center justify-between cursor-pointer hover:bg-slate-100 p-1.5 -ml-1.5 rounded-lg transition-colors group"
+                         onClick={() => setEditingId(c.id)}
+                       >
+                         <Badge className={`${c.status === 'Resolved' ? 'bg-[#22C55E]/10 text-[#22C55E]' : c.status === 'Rejected' ? 'bg-red-100 text-red-600' : 'bg-[#DEEBF7] text-[#6BAED6]'} border-none shadow-none font-bold`}>
+                           {c.status}
+                         </Badge>
+                         <Edit2 className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                       </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filteredComplaints.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-6 text-slate-400">No records found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      
     </div>
   );
 }
