@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Sparkles, MapPin, Camera, CheckCircle2, Clock, Image as ImageIcon, 
-  Send, AlertTriangle, ShieldCheck, Users, XCircle, ShieldAlert, BarChart3
+  Send, AlertTriangle, ShieldCheck, Users, XCircle, ShieldAlert, BarChart3, Building2,
+  ChevronRight, BrainCircuit
 } from 'lucide-react';
 import { analyzeComplaint, AIAnalysisResult } from '@/app/actions/analyzeComplaint';
 import { Progress } from "@/components/ui/progress";
@@ -30,7 +31,6 @@ export default function CitizenDashboard() {
   const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
   const [authenticityScore, setAuthenticityScore] = useState(0);
 
-  // Capture GPS
   const handleGPS = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -44,7 +44,6 @@ export default function CitizenDashboard() {
     }
   };
 
-  // Capture Camera
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -67,7 +66,6 @@ export default function CitizenDashboard() {
 
   const handleUpload = () => {
     setHasImage(true);
-    // Mock image upload
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,8 +77,7 @@ export default function CitizenDashboard() {
       const result = await analyzeComplaint(title, description, location, hasImage);
       setAiResult(result);
       
-      // Calculate Authenticity
-      let score = 50; // Base
+      let score = 50; 
       if (gpsData) score += 20;
       if (hasImage && result.imageVerification.validImage) score += 20;
       if (result.duplicateProbability > 50) score += 10;
@@ -95,173 +92,186 @@ export default function CitizenDashboard() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Citizen Portal</h1>
-        <p className="text-muted-foreground mt-1">Report issues, verify community reports, and track resolutions transparently.</p>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Citizen Command Portal</h1>
+        <p className="text-slate-500 mt-2 font-medium">Submit secure, verifiable reports directly to the Government AI Engine.</p>
       </div>
 
       <Tabs defaultValue="submit" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
-          <TabsTrigger value="submit">Report Issue</TabsTrigger>
-          <TabsTrigger value="history">Timeline</TabsTrigger>
-          <TabsTrigger value="transparency">Public Data</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 max-w-[500px] bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm h-12">
+          <TabsTrigger value="submit" className="rounded-lg data-[state=active]:bg-[#DEEBF7] data-[state=active]:text-[#6BAED6] data-[state=active]:font-bold font-medium text-slate-500 transition-all">Submit Issue</TabsTrigger>
+          <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-[#DEEBF7] data-[state=active]:text-[#6BAED6] data-[state=active]:font-bold font-medium text-slate-500 transition-all">Active Trackers</TabsTrigger>
+          <TabsTrigger value="transparency" className="rounded-lg data-[state=active]:bg-[#DEEBF7] data-[state=active]:text-[#6BAED6] data-[state=active]:font-bold font-medium text-slate-500 transition-all">Public Transparency</TabsTrigger>
         </TabsList>
         
         <TabsContent value="submit" className="mt-6">
           {!isSubmitted ? (
-            <Card className="bg-card border-white/5 shadow-2xl backdrop-blur rounded-2xl">
-              <CardHeader className="p-8 pb-4">
-                <CardTitle className="text-2xl tracking-tight">Report a New Issue</CardTitle>
-                <CardDescription>Details are analyzed instantly. Attach an image and GPS for higher priority.</CardDescription>
+            <Card className="bg-white border-slate-200 shadow-md rounded-3xl">
+              <CardHeader className="p-8 pb-6 border-b border-slate-100 bg-[#F7FBFF] rounded-t-3xl">
+                <CardTitle className="text-2xl font-bold text-slate-800 tracking-tight">Report a New Incident</CardTitle>
+                <CardDescription className="text-slate-500 font-medium mt-1">Provide clear, actionable intelligence. AI will automatically route to the correct municipal department.</CardDescription>
               </CardHeader>
-              <CardContent className="p-8 pt-0">
-                <form onSubmit={handleSubmit} className="space-y-6">
+              <CardContent className="p-8">
+                <form onSubmit={handleSubmit} className="space-y-8">
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-widest text-zinc-500">Complaint Title</Label>
-                    <Input required placeholder="e.g. Large pothole on 5th Avenue causing traffic hazards" value={title} onChange={(e) => setTitle(e.target.value)} className="h-12 bg-zinc-900/50 border-white/10" />
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Complaint Title</Label>
+                    <Input required placeholder="e.g. Large pothole on 5th Avenue causing traffic hazards" value={title} onChange={(e) => setTitle(e.target.value)} className="h-12 bg-white border-slate-200 text-slate-800 font-medium focus-visible:ring-[#6BAED6] shadow-sm rounded-xl" />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-widest text-zinc-500">Description</Label>
-                    <Textarea required placeholder="Please describe the issue in detail..." className="h-32 bg-zinc-900/50 border-white/10" value={description} onChange={(e) => setDescription(e.target.value)} />
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Description</Label>
+                    <Textarea required placeholder="Please describe the issue in detail..." className="h-32 bg-white border-slate-200 text-slate-800 focus-visible:ring-[#6BAED6] shadow-sm rounded-xl resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-widest text-zinc-500 flex justify-between">
-                          Location
-                          {gpsData && <span className="text-emerald-400 flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> GPS Verified</span>}
+                        <Label className="text-xs font-bold uppercase tracking-widest text-slate-500 flex justify-between">
+                          Spatial Data
+                          {gpsData && <span className="text-[#22C55E] flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> Secured</span>}
                         </Label>
                         <div className="flex gap-2">
-                          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Enter manually or use GPS" className="bg-zinc-900/50 border-white/10 h-10" />
-                          <Button type="button" variant="outline" size="icon" onClick={handleGPS} className="border-white/10 hover:bg-zinc-800">
-                            <MapPin className="w-4 h-4" />
+                          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Auto-capture recommended" className="bg-white border-slate-200 h-12 shadow-sm rounded-xl text-slate-800 font-mono text-sm" />
+                          <Button type="button" variant="outline" size="icon" onClick={handleGPS} className="border-slate-200 bg-white hover:bg-slate-50 h-12 w-12 rounded-xl shadow-sm text-slate-500">
+                            <MapPin className="w-5 h-5" />
                           </Button>
                         </div>
                      </div>
                      <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-widest text-zinc-500">Evidence (Optional)</Label>
+                        <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Photographic Evidence</Label>
                         <div className="flex gap-2">
-                          <Button type="button" variant="outline" className="w-full border-white/10 hover:bg-zinc-800" onClick={startCamera}>
-                            <Camera className="mr-2 w-4 h-4"/> Live Camera
+                          <Button type="button" variant="outline" className="w-full border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold h-12 rounded-xl shadow-sm" onClick={startCamera}>
+                            <Camera className="mr-2 w-4 h-4"/> Live Capture
                           </Button>
-                          <Button type="button" variant="outline" className="w-full border-white/10 hover:bg-zinc-800" onClick={handleUpload}>
-                            <ImageIcon className="mr-2 w-4 h-4"/> Upload EXIF
+                          <Button type="button" variant="outline" className="w-full border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold h-12 rounded-xl shadow-sm" onClick={handleUpload}>
+                            <ImageIcon className="mr-2 w-4 h-4"/> Upload Media
                           </Button>
                         </div>
                      </div>
                   </div>
 
-                  {/* Camera / Image Preview Area */}
-                  <div className="bg-zinc-900/30 p-4 rounded-xl border border-white/10 border-dashed flex items-center justify-center text-muted-foreground text-sm min-h-[100px] overflow-hidden relative">
+                  <div className="bg-[#F7FBFF] p-6 rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-slate-400 text-sm min-h-[160px] overflow-hidden relative shadow-inner">
                     {stream ? (
                        <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
                     ) : hasImage ? (
-                       <span className="flex items-center text-emerald-400"><ShieldCheck className="w-4 h-4 mr-2"/> Geotagged Media Attached</span>
+                       <div className="flex flex-col items-center text-[#22C55E]">
+                          <ShieldCheck className="w-8 h-8 mb-2" />
+                          <span className="font-bold">Cryptographically Secured Media</span>
+                          <span className="text-xs text-[#22C55E]/70 mt-1">Ready for AI processing</span>
+                       </div>
                     ) : (
-                       <span>No image provided. Will be marked &quot;Pending Verification&quot;.</span>
+                       <div className="flex flex-col items-center">
+                          <ImageIcon className="w-10 h-10 text-slate-300 mb-3" />
+                          <span className="font-medium">No visual evidence provided. Complaint will require manual field verification.</span>
+                       </div>
                     )}
                   </div>
 
-                  <Button type="submit" disabled={isSubmitting || !title || !description} className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-lg rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_-5px_rgba(37,99,235,0.6)]">
+                  <Button type="submit" disabled={isSubmitting || !title || !description} className="w-full bg-[#6BAED6] hover:bg-[#5a9ac0] text-white h-14 text-lg font-bold rounded-xl transition-all shadow-md">
                     {isSubmitting ? (
-                      <span className="flex items-center"><Sparkles className="mr-2 w-5 h-5 animate-pulse" /> AI Verification in Progress...</span>
+                      <span className="flex items-center"><Sparkles className="mr-2 w-6 h-6 animate-pulse" /> Executing AI Diagnostics...</span>
                     ) : (
-                      <span className="flex items-center"><Send className="mr-2 w-5 h-5" /> Submit & Verify</span>
+                      <span className="flex items-center"><Send className="mr-2 w-6 h-6" /> Submit to Government Grid</span>
                     )}
                   </Button>
                 </form>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-               <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                  <div className="flex items-center text-emerald-400">
-                    <CheckCircle2 className="w-6 h-6 mr-3" />
-                    <span className="text-lg font-medium tracking-tight">Complaint Submitted & Verified</span>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+               <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-6 bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-2xl shadow-sm">
+                  <div className="flex items-center text-[#22C55E]">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mr-4">
+                      <CheckCircle2 className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold tracking-tight">Intelligence Logged</h3>
+                      <p className="text-sm font-medium opacity-80">Reference ID: CIVI-9482X</p>
+                    </div>
                   </div>
                   {aiResult?.duplicateProbability && aiResult.duplicateProbability > 70 && (
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                      <Users className="w-3 h-3 mr-1"/> Merged with 12 similar reports
+                    <Badge variant="secondary" className="bg-white text-[#6BAED6] border-slate-200 shadow-sm px-4 py-2 font-bold text-sm">
+                      <Users className="w-4 h-4 mr-2"/> Collated with 12 similar reports
                     </Badge>
                   )}
                </div>
                
                {aiResult && (
-                 <Card className="bg-zinc-950 border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-                   <CardHeader className="bg-gradient-to-r from-blue-900/20 to-transparent border-b border-white/5 p-6">
+                 <Card className="bg-white border-slate-200 rounded-3xl overflow-hidden shadow-lg">
+                   <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-8">
                      <div className="flex items-center justify-between">
-                       <CardTitle className="flex items-center text-blue-400 text-xl tracking-tight">
-                         <Sparkles className="w-5 h-5 mr-2" />
+                       <CardTitle className="flex items-center text-[#6BAED6] text-2xl font-bold tracking-tight">
+                         <BrainCircuit className="w-7 h-7 mr-3" />
                          AI Diagnostic Report
                        </CardTitle>
-                       <div className="flex items-center gap-4">
-                         <div className="flex items-center flex-col items-end">
-                           <span className="text-[10px] uppercase tracking-widest text-zinc-500">Authenticity</span>
-                           <span className={`font-mono font-bold ${authenticityScore >= 80 ? 'text-emerald-400' : 'text-orange-400'}`}>{authenticityScore}/100</span>
+                       <div className="flex items-center gap-6">
+                         <div className="flex flex-col items-end">
+                           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Authenticity Rating</span>
+                           <span className={`text-3xl font-black tracking-tighter ${authenticityScore >= 80 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>{authenticityScore}</span>
                          </div>
-                         <Badge variant="outline" className="bg-zinc-900 font-mono border-white/10">CIVI-9482X</Badge>
                        </div>
                      </div>
                    </CardHeader>
-                   <CardContent className="p-6">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                        <div className="space-y-1">
-                          <span className="text-[10px] uppercase tracking-widest text-zinc-500">Category</span>
-                          <div className="font-medium text-zinc-200">{aiResult.category}</div>
+                   <CardContent className="p-8">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Classification</span>
+                          <div className="font-bold text-slate-800 text-lg">{aiResult.category}</div>
                         </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] uppercase tracking-widest text-zinc-500">Route To</span>
-                          <div className="font-medium text-zinc-200">{aiResult.suggestedDepartment}</div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assigned To</span>
+                          <div className="font-bold text-slate-800 text-lg flex items-center">
+                            <Building2 className="w-4 h-4 mr-1.5 text-slate-400"/>
+                            {aiResult.suggestedDepartment}
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] uppercase tracking-widest text-zinc-500">Priority</span>
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Priority Level</span>
                           <div>
-                            <Badge className={aiResult.priority === 'Critical' ? 'bg-red-500/20 text-red-400' : 'bg-zinc-800'}>
+                            <Badge className={`px-3 py-1 font-bold ${aiResult.priority === 'Critical' ? 'bg-[#EF4444] text-white' : 'bg-slate-100 text-slate-600'}`}>
                               {aiResult.priority}
                             </Badge>
                           </div>
                         </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] uppercase tracking-widest text-zinc-500">SLA</span>
-                          <div className="font-medium flex items-center text-blue-400"><Clock className="w-4 h-4 mr-1"/> {aiResult.estimatedResolution}</div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Target SLA</span>
+                          <div className="font-bold flex items-center text-[#6BAED6] text-lg"><Clock className="w-5 h-5 mr-1.5"/> {aiResult.estimatedResolution}</div>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                         <div className="bg-zinc-900/50 p-5 rounded-xl border border-white/5">
-                           <h4 className="text-[10px] uppercase tracking-widest text-zinc-500 mb-2">Image Verification</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                           <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center"><Camera className="w-4 h-4 mr-2"/> Vision AI Verification</h4>
                            {hasImage ? (
-                             <div className="flex items-start gap-3">
-                               {aiResult.imageVerification.validImage ? <ShieldCheck className="w-5 h-5 text-emerald-400 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-orange-400 mt-0.5" />}
+                             <div className="flex items-start gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                               {aiResult.imageVerification.validImage ? <ShieldCheck className="w-6 h-6 text-[#22C55E] mt-0.5" /> : <AlertTriangle className="w-6 h-6 text-[#F59E0B] mt-0.5" />}
                                <div>
-                                 <p className="text-sm font-medium text-zinc-200">{aiResult.imageVerification.detectedIssue}</p>
-                                 <p className="text-xs text-zinc-500 mt-1">AI Confidence: {aiResult.imageVerification.confidence}%</p>
+                                 <p className="text-base font-bold text-slate-800">{aiResult.imageVerification.detectedIssue}</p>
+                                 <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">AI Confidence: {aiResult.imageVerification.confidence}%</p>
                                </div>
                              </div>
                            ) : (
-                             <div className="flex items-center text-orange-400 text-sm">
-                               <ShieldAlert className="w-4 h-4 mr-2"/> Pending Field Verification (No Image)
+                             <div className="flex items-center text-[#F59E0B] font-bold bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                               <ShieldAlert className="w-5 h-5 mr-2"/> Pending Manual Field Verification (No Image)
                              </div>
                            )}
                          </div>
 
-                         <div className="bg-zinc-900/50 p-5 rounded-xl border border-white/5">
-                           <h4 className="text-[10px] uppercase tracking-widest text-zinc-500 mb-2">Multi-Dept Workflow</h4>
-                           <div className="flex items-center gap-2 text-sm text-zinc-300 flex-wrap">
+                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                           <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center"><Users className="w-4 h-4 mr-2"/> Execution Workflow</h4>
+                           <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                              {aiResult.departmentsRequired?.map((dept, i) => (
-                               <div key={i} className="flex items-center">
-                                 <Badge variant="outline" className="border-white/10 bg-black">{dept}</Badge>
-                                 {i < aiResult.departmentsRequired.length - 1 && <span className="mx-1 text-zinc-600">→</span>}
+                               <div key={i} className="flex items-center font-bold">
+                                 <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700 px-3 py-1 shadow-sm">{dept}</Badge>
+                                 {i < aiResult.departmentsRequired.length - 1 && <ChevronRight className="mx-1 text-slate-300 w-5 h-5" />}
                                </div>
                              ))}
                            </div>
                          </div>
                       </div>
                       
-                      <Button onClick={() => { setIsSubmitted(false); setTitle(''); setDescription(''); setHasImage(false); setGpsData(null); }} variant="outline" className="w-full h-12 rounded-xl border-white/10 hover:bg-zinc-900">
-                        Submit Another Complaint
+                      <Button onClick={() => { setIsSubmitted(false); setTitle(''); setDescription(''); setHasImage(false); setGpsData(null); }} variant="outline" className="w-full h-14 rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-base shadow-sm">
+                        File Another Intelligence Report
                       </Button>
                    </CardContent>
                  </Card>
@@ -271,47 +281,73 @@ export default function CitizenDashboard() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
-          <Card className="bg-card border-white/5 rounded-2xl">
-            <CardHeader className="p-8 pb-4">
-              <CardTitle className="tracking-tight">Complaint Timeline</CardTitle>
-              <CardDescription>Track status and verify community reports.</CardDescription>
+          <Card className="bg-white border-slate-200 shadow-md rounded-3xl">
+            <CardHeader className="p-8 pb-6 border-b border-slate-100 bg-[#F7FBFF] rounded-t-3xl">
+              <CardTitle className="tracking-tight text-2xl font-bold text-slate-800">Operational Timeline</CardTitle>
+              <CardDescription className="text-slate-500 font-medium mt-1">Track the exact lifecycle of your reports across government departments.</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 pt-0">
-              <div className="space-y-8">
-                {/* Active Complaint */}
-                <div className="relative pl-8 border-l border-white/10 pb-4">
-                   <div className="absolute -left-[9px] top-0 bg-blue-500 rounded-full p-1 shadow-[0_0_10px_rgba(59,130,246,0.5)]">
-                     <Clock className="w-2.5 h-2.5 text-white" />
-                   </div>
-                   <div className="flex justify-between items-start mb-1">
-                     <h4 className="font-semibold text-lg tracking-tight text-zinc-100">{title || "Large pothole on 5th Avenue"}</h4>
-                     <Badge className="bg-blue-500/20 text-blue-400">In Progress</Badge>
-                   </div>
-                   <p className="text-xs text-zinc-500 mb-4">ID: CIVI-9482X • Auth Score: 85/100</p>
-                   
-                   <div className="bg-zinc-900/50 rounded-xl p-5 space-y-4 border border-white/5">
-                      <div className="flex items-center text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mr-3" />
-                        <span className="text-zinc-500 mr-2">10:15 AM:</span> <span className="text-zinc-300">AI verified and merged with 12 duplicates.</span>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <div className="w-4 h-4 rounded-full border-2 border-blue-500 mr-3 animate-pulse" />
-                        <span className="text-blue-400 mr-2 font-medium">Current:</span> <span className="text-zinc-300">Water Dept task completed. Awaiting Roads Dept.</span>
-                      </div>
-                   </div>
+            <CardContent className="p-8">
+              
+              {/* Professional Timeline Component */}
+              <div className="max-w-2xl mx-auto space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
 
-                   {/* Community Verification */}
-                   <div className="mt-4 flex items-center gap-3">
-                     <span className="text-xs uppercase tracking-widest text-zinc-500 mr-2">Community Verify:</span>
-                     <Button size="sm" variant="outline" className="h-8 border-white/10 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30">
-                       <CheckCircle2 className="w-3 h-3 mr-1"/> Still Exists
-                     </Button>
-                     <Button size="sm" variant="outline" className="h-8 border-white/10 hover:bg-zinc-800">
-                       <XCircle className="w-3 h-3 mr-1"/> Resolved
-                     </Button>
+                 {/* Step 1: Submit */}
+                 <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-[#6BAED6] text-white shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                     <CheckCircle2 className="w-5 h-5" />
                    </div>
+                   <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-left">
+                     <div className="flex items-center justify-between mb-2">
+                       <h4 className="font-bold text-slate-800 text-base">Complaint Received</h4>
+                       <span className="text-xs font-bold text-slate-400">09:00 AM</span>
+                     </div>
+                     <p className="text-sm text-slate-500 font-medium">Encrypted payload delivered to the central grid.</p>
+                   </div>
+                 </div>
+
+                 {/* Step 2: AI */}
+                 <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-[#6BAED6] text-white shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                     <BrainCircuit className="w-5 h-5" />
+                   </div>
+                   <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-left">
+                     <div className="flex items-center justify-between mb-2">
+                       <h4 className="font-bold text-slate-800 text-base">AI Classification</h4>
+                       <span className="text-xs font-bold text-slate-400">09:01 AM</span>
+                     </div>
+                     <p className="text-sm text-slate-500 font-medium">Vision AI authenticated imagery. Priority raised to High.</p>
+                   </div>
+                 </div>
+
+                 {/* Step 3: Current */}
+                 <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-white text-[#F59E0B] shadow-[0_0_0_2px_#F59E0B] shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                     <Clock className="w-5 h-5 animate-pulse" />
+                   </div>
+                   <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-orange-50 border-orange-200 p-5 rounded-2xl border shadow-sm text-left relative overflow-hidden">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-[#F59E0B]"></div>
+                     <div className="flex items-center justify-between mb-2">
+                       <h4 className="font-bold text-slate-800 text-base">In Progress</h4>
+                       <Badge className="bg-[#F59E0B] text-white px-2 py-0.5 text-[10px]">Active</Badge>
+                     </div>
+                     <p className="text-sm text-slate-600 font-medium">Public Works Department dispatched. ETA: 2 hours.</p>
+                   </div>
+                 </div>
+              </div>
+
+              {/* Community Verification */}
+              <div className="mt-12 pt-8 border-t border-slate-200">
+                <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 text-center">Community Oversight</h4>
+                <div className="flex items-center justify-center gap-4">
+                  <Button size="lg" className="bg-[#22C55E] hover:bg-[#1ea850] text-white rounded-xl shadow-sm font-bold">
+                    <CheckCircle2 className="w-5 h-5 mr-2"/> Issue Persists (Verify)
+                  </Button>
+                  <Button size="lg" variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl shadow-sm font-bold">
+                    <XCircle className="w-5 h-5 mr-2"/> Issue Resolved
+                  </Button>
                 </div>
               </div>
+
             </CardContent>
           </Card>
         </TabsContent>
@@ -319,30 +355,34 @@ export default function CitizenDashboard() {
         {/* Public Transparency Dashboard */}
         <TabsContent value="transparency" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-zinc-900 border-white/5 rounded-2xl">
-              <CardContent className="p-6">
-                <BarChart3 className="w-6 h-6 text-blue-400 mb-4" />
-                <h3 className="text-2xl font-bold tracking-tight">24h 12m</h3>
-                <p className="text-xs uppercase tracking-widest text-zinc-500 mt-1">Avg Resolution Time</p>
+            <Card className="bg-white border-slate-200 rounded-3xl shadow-md">
+              <CardContent className="p-8">
+                <div className="w-12 h-12 bg-[#DEEBF7] rounded-2xl flex items-center justify-center mb-6">
+                  <BarChart3 className="w-6 h-6 text-[#6BAED6]" />
+                </div>
+                <h3 className="text-4xl font-black tracking-tighter text-slate-800">24<span className="text-2xl text-slate-400">h</span> 12<span className="text-2xl text-slate-400">m</span></h3>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Avg Resolution Time</p>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900 border-white/5 rounded-2xl">
-              <CardContent className="p-6">
-                <Users className="w-6 h-6 text-emerald-400 mb-4" />
-                <h3 className="text-2xl font-bold tracking-tight">92%</h3>
-                <p className="text-xs uppercase tracking-widest text-zinc-500 mt-1">Citizen Satisfaction</p>
+            <Card className="bg-white border-slate-200 rounded-3xl shadow-md">
+              <CardContent className="p-8">
+                <div className="w-12 h-12 bg-[#DEEBF7] rounded-2xl flex items-center justify-center mb-6">
+                  <Users className="w-6 h-6 text-[#6BAED6]" />
+                </div>
+                <h3 className="text-4xl font-black tracking-tighter text-[#22C55E]">92%</h3>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Citizen Satisfaction</p>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900 border-white/5 rounded-2xl col-span-1 md:col-span-3 p-6">
-               <h3 className="text-sm font-semibold mb-4 tracking-tight">Department Leaderboard</h3>
-               <div className="space-y-4">
+            <Card className="bg-white border-slate-200 rounded-3xl col-span-1 md:col-span-3 p-8 shadow-md">
+               <h3 className="text-lg font-bold text-slate-800 mb-6 tracking-tight flex items-center"><Building2 className="w-5 h-5 mr-2 text-slate-400"/> Department Leaderboard</h3>
+               <div className="space-y-6">
                  <div>
-                   <div className="flex justify-between text-sm mb-1"><span className="text-zinc-300">Public Works</span><span className="text-emerald-400">98 Score</span></div>
-                   <Progress value={98} className="h-1 bg-zinc-800" />
+                   <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-slate-700">Public Works</span><span className="text-[#22C55E]">98 Score</span></div>
+                   <Progress value={98} className="h-3 bg-slate-100 rounded-full [&>div]:bg-[#22C55E]" />
                  </div>
                  <div>
-                   <div className="flex justify-between text-sm mb-1"><span className="text-zinc-300">Water Board</span><span className="text-blue-400">85 Score</span></div>
-                   <Progress value={85} className="h-1 bg-zinc-800" />
+                   <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-slate-700">Water Board</span><span className="text-[#6BAED6]">85 Score</span></div>
+                   <Progress value={85} className="h-3 bg-slate-100 rounded-full [&>div]:bg-[#6BAED6]" />
                  </div>
                </div>
             </Card>
