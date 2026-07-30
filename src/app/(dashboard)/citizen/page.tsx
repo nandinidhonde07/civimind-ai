@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { analyzeComplaint, AIAnalysisResult } from '@/app/actions/analyzeComplaint';
 import { Progress } from "@/components/ui/progress";
+import { useStore, Priority } from '@/lib/store';
 
 export default function CitizenDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +31,15 @@ export default function CitizenDashboard() {
   
   const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
   const [authenticityScore, setAuthenticityScore] = useState(0);
+
+  // Zustand Store
+  const addComplaint = useStore(state => state.addComplaint);
+  const complaints = useStore(state => state.complaints);
+  const seedData = useStore(state => state.seedData);
+
+  useEffect(() => {
+    seedData(); // Seed data on first load if empty
+  }, [seedData]);
 
   const handleGPS = () => {
     if (navigator.geolocation) {
@@ -81,8 +91,23 @@ export default function CitizenDashboard() {
       if (gpsData) score += 20;
       if (hasImage && result.imageVerification.validImage) score += 20;
       if (result.duplicateProbability > 50) score += 10;
-      setAuthenticityScore(Math.min(100, score));
+      const finalScore = Math.min(100, score);
+      setAuthenticityScore(finalScore);
       
+      // Add to Zustand Store
+      addComplaint({
+        title,
+        description,
+        location: location || 'Unknown',
+        hasImage,
+        category: result.category,
+        department: result.suggestedDepartment,
+        priority: result.priority as Priority,
+        authenticityScore: finalScore,
+        duplicateProbability: result.duplicateProbability,
+        estimatedResolution: result.estimatedResolution
+      });
+
       setIsSubmitted(true);
     } catch (error) {
       console.error(error);
@@ -90,6 +115,14 @@ export default function CitizenDashboard() {
       setIsSubmitting(false);
     }
   };
+
+  // Calculations for Transparency Tab
+  const totalComplaints = complaints.length;
+  const resolvedComplaints = complaints.filter(c => c.status === 'Resolved').length;
+  const satisfactionRate = totalComplaints > 0 ? Math.round((resolvedComplaints / totalComplaints) * 100) || 92 : 92;
+  
+  // Get most recent complaint for tracker
+  const latestComplaint = complaints[0];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -186,12 +219,12 @@ export default function CitizenDashboard() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold tracking-tight">Intelligence Logged</h3>
-                      <p className="text-sm font-medium opacity-80">Reference ID: CIVI-9482X</p>
+                      <p className="text-sm font-medium opacity-80">Reference ID: {latestComplaint?.id}</p>
                     </div>
                   </div>
                   {aiResult?.duplicateProbability && aiResult.duplicateProbability > 70 && (
                     <Badge variant="secondary" className="bg-white text-[#6BAED6] border-slate-200 shadow-sm px-4 py-2 font-bold text-sm">
-                      <Users className="w-4 h-4 mr-2"/> Collated with 12 similar reports
+                      <Users className="w-4 h-4 mr-2"/> Collated with similar reports
                     </Badge>
                   )}
                </div>
@@ -282,71 +315,77 @@ export default function CitizenDashboard() {
 
         <TabsContent value="history" className="mt-6">
           <Card className="bg-white border-slate-200 shadow-md rounded-3xl">
-            <CardHeader className="p-8 pb-6 border-b border-slate-100 bg-[#F7FBFF] rounded-t-3xl">
-              <CardTitle className="tracking-tight text-2xl font-bold text-slate-800">Operational Timeline</CardTitle>
-              <CardDescription className="text-slate-500 font-medium mt-1">Track the exact lifecycle of your reports across government departments.</CardDescription>
+            <CardHeader className="p-8 pb-6 border-b border-slate-100 bg-[#F7FBFF] rounded-t-3xl flex flex-row justify-between items-center">
+              <div>
+                <CardTitle className="tracking-tight text-2xl font-bold text-slate-800">Operational Timeline</CardTitle>
+                <CardDescription className="text-slate-500 font-medium mt-1">Track the exact lifecycle of your reports across government departments.</CardDescription>
+              </div>
+              {latestComplaint && <Badge className="bg-slate-100 text-slate-600 border-none shadow-none text-sm">{latestComplaint.id}</Badge>}
             </CardHeader>
             <CardContent className="p-8">
               
-              {/* Professional Timeline Component */}
-              <div className="max-w-2xl mx-auto space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+              {!latestComplaint ? (
+                <div className="text-center py-12 text-slate-400 font-medium">No complaints active on your node.</div>
+              ) : (
+                <>
+                  <div className="mb-8">
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">{latestComplaint.title}</h3>
+                    <p className="text-slate-500 font-medium">{latestComplaint.description}</p>
+                  </div>
+                  {/* Professional Timeline Component */}
+                  <div className="max-w-2xl mx-auto space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                     
+                     {latestComplaint.timeline.map((event, index) => {
+                       const isLast = index === latestComplaint.timeline.length - 1;
+                       let Icon = CheckCircle2;
+                       let colorClass = "bg-[#6BAED6] text-white border-white";
+                       
+                       if (event.status === 'AI Verified') {
+                         Icon = BrainCircuit;
+                       } else if (event.status.includes('Progress')) {
+                         Icon = Clock;
+                         if (isLast) colorClass = "bg-white text-[#F59E0B] shadow-[0_0_0_2px_#F59E0B] border-white";
+                       } else if (event.status === 'Resolved') {
+                         Icon = ShieldCheck;
+                         colorClass = "bg-[#22C55E] text-white border-white";
+                       }
 
-                 {/* Step 1: Submit */}
-                 <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-[#6BAED6] text-white shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                     <CheckCircle2 className="w-5 h-5" />
-                   </div>
-                   <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-left">
-                     <div className="flex items-center justify-between mb-2">
-                       <h4 className="font-bold text-slate-800 text-base">Complaint Received</h4>
-                       <span className="text-xs font-bold text-slate-400">09:00 AM</span>
-                     </div>
-                     <p className="text-sm text-slate-500 font-medium">Encrypted payload delivered to the central grid.</p>
-                   </div>
-                 </div>
+                       return (
+                         <div key={index} className={`relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group ${isLast ? 'is-active' : ''}`}>
+                           <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 ${colorClass}`}>
+                             <Icon className={`w-5 h-5 ${isLast && event.status.includes('Progress') ? 'animate-pulse' : ''}`} />
+                           </div>
+                           <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border ${isLast && event.status.includes('Progress') ? 'border-[#F59E0B] bg-orange-50' : 'border-slate-200'} shadow-sm text-left relative overflow-hidden`}>
+                             {isLast && event.status.includes('Progress') && <div className="absolute top-0 left-0 w-1 h-full bg-[#F59E0B]"></div>}
+                             {isLast && event.status === 'Resolved' && <div className="absolute top-0 left-0 w-1 h-full bg-[#22C55E]"></div>}
+                             <div className="flex items-center justify-between mb-2">
+                               <h4 className="font-bold text-slate-800 text-base">{event.status}</h4>
+                               {isLast && event.status.includes('Progress') && <Badge className="bg-[#F59E0B] text-white px-2 py-0.5 text-[10px]">Active</Badge>}
+                               {isLast && event.status === 'Resolved' && <Badge className="bg-[#22C55E] text-white px-2 py-0.5 text-[10px]">Completed</Badge>}
+                             </div>
+                             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{new Date(event.timestamp).toLocaleString()}</p>
+                           </div>
+                         </div>
+                       )
+                     })}
+                  </div>
 
-                 {/* Step 2: AI */}
-                 <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-[#6BAED6] text-white shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                     <BrainCircuit className="w-5 h-5" />
-                   </div>
-                   <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-left">
-                     <div className="flex items-center justify-between mb-2">
-                       <h4 className="font-bold text-slate-800 text-base">AI Classification</h4>
-                       <span className="text-xs font-bold text-slate-400">09:01 AM</span>
-                     </div>
-                     <p className="text-sm text-slate-500 font-medium">Vision AI authenticated imagery. Priority raised to High.</p>
-                   </div>
-                 </div>
-
-                 {/* Step 3: Current */}
-                 <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-white text-[#F59E0B] shadow-[0_0_0_2px_#F59E0B] shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                     <Clock className="w-5 h-5 animate-pulse" />
-                   </div>
-                   <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-orange-50 border-orange-200 p-5 rounded-2xl border shadow-sm text-left relative overflow-hidden">
-                     <div className="absolute top-0 left-0 w-1 h-full bg-[#F59E0B]"></div>
-                     <div className="flex items-center justify-between mb-2">
-                       <h4 className="font-bold text-slate-800 text-base">In Progress</h4>
-                       <Badge className="bg-[#F59E0B] text-white px-2 py-0.5 text-[10px]">Active</Badge>
-                     </div>
-                     <p className="text-sm text-slate-600 font-medium">Public Works Department dispatched. ETA: 2 hours.</p>
-                   </div>
-                 </div>
-              </div>
-
-              {/* Community Verification */}
-              <div className="mt-12 pt-8 border-t border-slate-200">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 text-center">Community Oversight</h4>
-                <div className="flex items-center justify-center gap-4">
-                  <Button size="lg" className="bg-[#22C55E] hover:bg-[#1ea850] text-white rounded-xl shadow-sm font-bold">
-                    <CheckCircle2 className="w-5 h-5 mr-2"/> Issue Persists (Verify)
-                  </Button>
-                  <Button size="lg" variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl shadow-sm font-bold">
-                    <XCircle className="w-5 h-5 mr-2"/> Issue Resolved
-                  </Button>
-                </div>
-              </div>
+                  {/* Community Verification */}
+                  {latestComplaint.status === 'Resolved' && (
+                    <div className="mt-12 pt-8 border-t border-slate-200">
+                      <h4 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 text-center">Community Oversight</h4>
+                      <div className="flex items-center justify-center gap-4">
+                        <Button size="lg" variant="outline" className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl shadow-sm font-bold">
+                          <XCircle className="w-5 h-5 mr-2"/> Re-open Issue
+                        </Button>
+                        <Button size="lg" className="bg-[#22C55E] hover:bg-[#1ea850] text-white rounded-xl shadow-sm font-bold">
+                          <CheckCircle2 className="w-5 h-5 mr-2"/> Confirm Resolution
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
             </CardContent>
           </Card>
@@ -360,8 +399,8 @@ export default function CitizenDashboard() {
                 <div className="w-12 h-12 bg-[#DEEBF7] rounded-2xl flex items-center justify-center mb-6">
                   <BarChart3 className="w-6 h-6 text-[#6BAED6]" />
                 </div>
-                <h3 className="text-4xl font-black tracking-tighter text-slate-800">24<span className="text-2xl text-slate-400">h</span> 12<span className="text-2xl text-slate-400">m</span></h3>
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Avg Resolution Time</p>
+                <h3 className="text-4xl font-black tracking-tighter text-slate-800">{totalComplaints}</h3>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Total Reports Filed</p>
               </CardContent>
             </Card>
             <Card className="bg-white border-slate-200 rounded-3xl shadow-md">
@@ -369,8 +408,8 @@ export default function CitizenDashboard() {
                 <div className="w-12 h-12 bg-[#DEEBF7] rounded-2xl flex items-center justify-center mb-6">
                   <Users className="w-6 h-6 text-[#6BAED6]" />
                 </div>
-                <h3 className="text-4xl font-black tracking-tighter text-[#22C55E]">92%</h3>
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Citizen Satisfaction</p>
+                <h3 className="text-4xl font-black tracking-tighter text-[#22C55E]">{satisfactionRate}%</h3>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Resolution Rate</p>
               </CardContent>
             </Card>
             <Card className="bg-white border-slate-200 rounded-3xl col-span-1 md:col-span-3 p-8 shadow-md">
@@ -381,7 +420,7 @@ export default function CitizenDashboard() {
                    <Progress value={98} className="h-3 bg-slate-100 rounded-full [&>div]:bg-[#22C55E]" />
                  </div>
                  <div>
-                   <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-slate-700">Water Board</span><span className="text-[#6BAED6]">85 Score</span></div>
+                   <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-slate-700">Forestry</span><span className="text-[#6BAED6]">85 Score</span></div>
                    <Progress value={85} className="h-3 bg-slate-100 rounded-full [&>div]:bg-[#6BAED6]" />
                  </div>
                </div>

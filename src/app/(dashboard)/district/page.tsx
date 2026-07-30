@@ -3,13 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Building2, AlertTriangle, TrendingUp, TrendingDown, Clock, Map, Star, ShieldCheck, ArrowUpRight, Search, Filter, Download, CheckCircle2
+  Building2, AlertTriangle, TrendingUp, TrendingDown, Clock, Map, Star, ShieldCheck, ArrowUpRight, Search, Filter, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
+import { useStore } from '@/lib/store';
 
 const mockPerformance = [
   { name: 'Public Works', score: 98, pending: 45, resolved: 1250 },
@@ -25,6 +26,11 @@ const mockTrend = [
 ];
 
 export default function DistrictDashboard() {
+  const complaints = useStore(state => state.complaints);
+  
+  const activeCases = complaints.filter(c => c.status !== 'Resolved').length;
+  const resolutionRate = complaints.length > 0 ? Math.round((complaints.filter(c => c.status === 'Resolved').length / complaints.length) * 100) : 100;
+
   return (
     <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
       
@@ -52,8 +58,8 @@ export default function DistrictDashboard() {
               <div className="p-2 bg-[#DEEBF7] text-[#6BAED6] rounded-xl"><AlertTriangle className="w-5 h-5"/></div>
             </div>
             <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">415</span>
-              <div className="mt-2 text-sm font-semibold text-[#EF4444] flex items-center"><TrendingUp className="w-4 h-4 mr-1"/> 12% vs last week</div>
+              <span className="text-4xl font-black text-slate-800 tracking-tighter">{activeCases}</span>
+              <div className="mt-2 text-sm font-semibold text-[#EF4444] flex items-center"><TrendingUp className="w-4 h-4 mr-1"/> Real-time Tracker</div>
             </div>
           </CardContent>
         </Card>
@@ -74,11 +80,11 @@ export default function DistrictDashboard() {
         <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
           <CardContent className="p-6 flex flex-col justify-between">
             <div className="flex justify-between items-start">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Citizen Auth Rate</div>
+              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Citizen Resolution Rate</div>
               <div className="p-2 bg-[#DEEBF7] text-[#6BAED6] rounded-xl"><ShieldCheck className="w-5 h-5"/></div>
             </div>
             <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">98.2%</span>
+              <span className="text-4xl font-black text-slate-800 tracking-tighter">{resolutionRate}%</span>
               <div className="mt-2 text-sm font-semibold text-[#22C55E] flex items-center"><ArrowUpRight className="w-4 h-4 mr-1"/> Highly Secure</div>
             </div>
           </CardContent>
@@ -124,7 +130,7 @@ export default function DistrictDashboard() {
           {/* Enterprise Data Grid */}
           <Card className="bg-white border-slate-200 shadow-sm rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#F7FBFF]">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Map className="w-5 h-5 mr-2 text-[#6BAED6]"/> Active Field Operations</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Map className="w-5 h-5 mr-2 text-[#6BAED6]"/> Active Field Operations (Live Sync)</CardTitle>
               <div className="flex items-center gap-3 w-full md:w-auto">
                  <div className="relative w-full md:w-64">
                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -145,32 +151,31 @@ export default function DistrictDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                  <tr className="hover:bg-[#F7FBFF] transition-colors group">
-                    <td className="px-6 py-4 font-bold text-slate-800">C-902</td>
-                    <td className="px-6 py-4 flex items-center"><Building2 className="w-4 h-4 mr-2 text-slate-400"/> Public Works</td>
-                    <td className="px-6 py-4">Water Main Break</td>
-                    <td className="px-6 py-4"><Badge className="bg-[#EF4444]/10 text-[#EF4444] border-none shadow-none font-bold">Critical</Badge></td>
-                    <td className="px-6 py-4"><Badge className="bg-[#F59E0B]/10 text-[#F59E0B] border-none shadow-none font-bold"><Clock className="w-3 h-3 mr-1"/> In Progress</Badge></td>
-                  </tr>
-                  <tr className="hover:bg-[#F7FBFF] transition-colors group">
-                    <td className="px-6 py-4 font-bold text-slate-800">C-903</td>
-                    <td className="px-6 py-4 flex items-center"><Building2 className="w-4 h-4 mr-2 text-slate-400"/> Sanitation</td>
-                    <td className="px-6 py-4">Missed Collection</td>
-                    <td className="px-6 py-4"><Badge className="bg-slate-100 text-slate-600 border-none shadow-none font-bold">Normal</Badge></td>
-                    <td className="px-6 py-4"><Badge className="bg-[#DEEBF7] text-[#6BAED6] border-none shadow-none font-bold">Pending</Badge></td>
-                  </tr>
-                  <tr className="hover:bg-[#F7FBFF] transition-colors group">
-                    <td className="px-6 py-4 font-bold text-slate-800">C-904</td>
-                    <td className="px-6 py-4 flex items-center"><Building2 className="w-4 h-4 mr-2 text-slate-400"/> Forestry</td>
-                    <td className="px-6 py-4">Fallen Tree</td>
-                    <td className="px-6 py-4"><Badge className="bg-[#F59E0B]/10 text-[#F59E0B] border-none shadow-none font-bold">High</Badge></td>
-                    <td className="px-6 py-4"><Badge className="bg-[#22C55E]/10 text-[#22C55E] border-none shadow-none font-bold"><CheckCircle2 className="w-3 h-3 mr-1"/> Resolved</Badge></td>
-                  </tr>
+                  {complaints.map(c => (
+                    <tr key={c.id} className="hover:bg-[#F7FBFF] transition-colors group">
+                      <td className="px-6 py-4 font-bold text-slate-800">{c.id}</td>
+                      <td className="px-6 py-4 flex items-center"><Building2 className="w-4 h-4 mr-2 text-slate-400"/> {c.department}</td>
+                      <td className="px-6 py-4 truncate max-w-[200px]">{c.title}</td>
+                      <td className="px-6 py-4">
+                        <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'} border-none shadow-none font-bold`}>{c.priority}</Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={`${c.status === 'Resolved' ? 'bg-[#22C55E]/10 text-[#22C55E]' : c.status === 'In Progress' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#DEEBF7] text-[#6BAED6]'} border-none shadow-none font-bold`}>
+                          {c.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                  {complaints.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-slate-400 font-medium">No active operations found.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-               <span>Showing 1-3 of 415 entries</span>
+               <span>Showing {complaints.length} entries</span>
                <div className="flex gap-2">
                  <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white">Prev</Button>
                  <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white">Next</Button>
@@ -192,9 +197,13 @@ export default function DistrictDashboard() {
                    backgroundImage: `radial-gradient(circle at center, #6BAED6 1px, transparent 1px)`,
                    backgroundSize: '24px 24px'
                  }}>
-                    {/* Simulated Heatmap Blips */}
-                    <div className="absolute top-1/4 left-1/4 w-12 h-12 bg-[#EF4444] rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse"></div>
-                    <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-[#F59E0B] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+                    {/* Simulated Heatmap Blips based on real data counts */}
+                    {complaints.filter(c => c.priority === 'Critical').length > 0 && (
+                      <div className="absolute top-1/4 left-1/4 w-12 h-12 bg-[#EF4444] rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse"></div>
+                    )}
+                    {complaints.filter(c => c.priority === 'High').length > 0 && (
+                      <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-[#F59E0B] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+                    )}
                     <div className="absolute bottom-1/4 right-1/4 w-16 h-16 bg-[#6BAED6] rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse"></div>
                  </div>
                </div>

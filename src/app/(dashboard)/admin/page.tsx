@@ -5,11 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  Users, ShieldAlert, Settings, Database, BrainCircuit, Activity, FileText, Search, Plus
+  Users, Settings, Database, BrainCircuit, Activity, FileText, Search, Plus
 } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
+import { useStore } from '@/lib/store';
 
 export default function AdminDashboard() {
+  const complaints = useStore(state => state.complaints);
+  const clearStore = useStore(state => state.clearStore);
+  
+  // Dynamic mocked calculations based on actual complaint volume
+  const aiTokens = (complaints.length * 1500 + 2400000).toLocaleString(); // Base + dynamic
+  const activeDepartments = new Set(complaints.map(c => c.department)).size || 18;
+
   return (
     <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
       
@@ -31,8 +39,8 @@ export default function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total Users</p>
-                <h3 className="text-3xl font-black text-slate-800 tracking-tighter">14,204</h3>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total System Entries</p>
+                <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{complaints.length + 14204}</h3>
               </div>
               <div className="p-2.5 bg-[#DEEBF7] rounded-xl text-[#6BAED6]"><Users className="w-5 h-5"/></div>
             </div>
@@ -58,7 +66,7 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">AI Tokens Used</p>
-                <h3 className="text-3xl font-black text-slate-800 tracking-tighter">2.4M</h3>
+                <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{aiTokens}</h3>
               </div>
               <div className="p-2.5 bg-yellow-100 rounded-xl text-yellow-600"><BrainCircuit className="w-5 h-5"/></div>
             </div>
@@ -71,7 +79,7 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Active Departments</p>
-                <h3 className="text-3xl font-black text-slate-800 tracking-tighter">18</h3>
+                <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{activeDepartments}</h3>
               </div>
               <div className="p-2.5 bg-[#DEEBF7] rounded-xl text-[#6BAED6]"><FileText className="w-5 h-5"/></div>
             </div>
@@ -146,11 +154,11 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                  <span>PostgreSQL DB</span>
-                  <span className="text-[#F59E0B]">85%</span>
+                  <span>Global State DB (Zustand)</span>
+                  <span className="text-[#22C55E]">{Math.min(complaints.length, 100)}%</span>
                 </div>
-                <Progress value={85} className="h-2 bg-slate-100 rounded-full [&>div]:bg-[#F59E0B]" />
-                <p className="text-xs text-slate-400 font-medium mt-2">425 GB / 500 GB used</p>
+                <Progress value={Math.min(complaints.length, 100)} className="h-2 bg-slate-100 rounded-full [&>div]:bg-[#22C55E]" />
+                <p className="text-xs text-slate-400 font-medium mt-2">{complaints.length} Records / Local Storage</p>
               </div>
             </CardContent>
           </Card>
@@ -169,15 +177,9 @@ export default function AdminDashboard() {
                    <div className="absolute right-0 top-0 w-5 h-5 bg-white rounded-full shadow"></div>
                  </div>
               </div>
-              <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                 <div className="flex items-center gap-3">
-                   <div className="p-2 bg-white rounded-lg shadow-sm text-slate-500"><ShieldAlert className="w-4 h-4"/></div>
-                   <span className="text-sm font-bold text-slate-700">Strict Image Verif.</span>
-                 </div>
-                 <div className="w-10 h-6 bg-[#22C55E] rounded-full border-2 border-transparent relative transition-colors cursor-pointer">
-                   <div className="absolute right-0 top-0 w-5 h-5 bg-white rounded-full shadow"></div>
-                 </div>
-              </div>
+              <Button onClick={() => clearStore()} variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-bold h-12 rounded-xl mt-4">
+                 Purge Global State (Hackathon Reset)
+              </Button>
             </CardContent>
           </Card>
         </div>
