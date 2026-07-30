@@ -219,7 +219,7 @@ export default function CitizenDashboard() {
   const latestComplaint = complaints[0];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-[1100px] w-full mx-auto px-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Citizen Command Portal</h1>
@@ -270,7 +270,7 @@ export default function CitizenDashboard() {
           <TabsTrigger value="transparency" className="rounded-lg data-[state=active]:bg-[#DEEBF7] data-[state=active]:text-[#6BAED6] data-[state=active]:font-bold font-medium text-slate-500 transition-all">Public Transparency</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="submit" className="mt-6">
+        <TabsContent value="submit" className="mt-7 w-full">
           <Card className="bg-white border-slate-200 shadow-md rounded-3xl">
             <CardHeader className="p-8 pb-6 border-b border-slate-100 bg-[#F7FBFF] rounded-t-3xl">
               <CardTitle className="text-2xl font-bold text-slate-800 tracking-tight">Report a New Incident</CardTitle>
@@ -349,7 +349,7 @@ export default function CitizenDashboard() {
         </TabsContent>
 
         {/* The rest is exactly the same, intact design */}
-        <TabsContent value="history" className="mt-6">
+        <TabsContent value="history" className="mt-7 w-full">
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
              
              {isSubmitted && aiResult && (
@@ -455,7 +455,7 @@ export default function CitizenDashboard() {
                       <Badge className={`${latestComplaint.status === 'Resolved' ? 'bg-[#22C55E]' : latestComplaint.status.includes('Progress') ? 'bg-[#F59E0B]' : 'bg-[#6BAED6]'} text-white shadow-sm font-bold`}>{latestComplaint.status}</Badge>
                     </div>
                     
-                    <div className="max-w-2xl mx-auto space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                    <div className="w-full space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
                        
                        {latestComplaint.timeline.map((event, index) => {
                          const isLast = index === latestComplaint.timeline.length - 1;
@@ -499,7 +499,7 @@ export default function CitizenDashboard() {
           </div>
         </TabsContent>
         
-        <TabsContent value="transparency" className="mt-6">
+        <TabsContent value="transparency" className="mt-7 w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="bg-white border-slate-200 rounded-3xl shadow-md">
               <CardContent className="p-8">
