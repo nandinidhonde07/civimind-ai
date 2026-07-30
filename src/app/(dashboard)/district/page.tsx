@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -11,25 +12,70 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import { useStore } from '@/lib/store';
-
-const mockPerformance = [
-  { name: 'Public Works', score: 98, pending: 45, resolved: 1250 },
-  { name: 'Water Board', score: 85, pending: 120, resolved: 850 },
-  { name: 'Electricity', score: 92, pending: 25, resolved: 2100 },
-  { name: 'Sanitation', score: 78, pending: 210, resolved: 540 },
-  { name: 'Forestry', score: 95, pending: 15, resolved: 320 }
-];
+import { toast } from 'sonner';
 
 const mockTrend = [
-  { day: 'Mon', volume: 120 }, { day: 'Tue', volume: 150 }, { day: 'Wed', volume: 180 },
-  { day: 'Thu', volume: 140 }, { day: 'Fri', volume: 200 }, { day: 'Sat', volume: 90 }, { day: 'Sun', volume: 80 }
+  { day: 'Mon', volume: 12 }, { day: 'Tue', volume: 15 }, { day: 'Wed', volume: 18 },
+  { day: 'Thu', volume: 14 }, { day: 'Fri', volume: 20 }, { day: 'Sat', volume: 9 }, { day: 'Sun', volume: 8 }
 ];
 
 export default function DistrictDashboard() {
   const complaints = useStore(state => state.complaints);
+  const [searchQuery, setSearchQuery] = useState('');
   
-  const activeCases = complaints.filter(c => c.status !== 'Resolved').length;
+  const activeCases = complaints.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected').length;
   const resolutionRate = complaints.length > 0 ? Math.round((complaints.filter(c => c.status === 'Resolved').length / complaints.length) * 100) : 100;
+
+  // Dynamic bar chart data
+  const departmentStats = useMemo(() => {
+    const deps = ['Public Works', 'Sanitation', 'Water Board', 'Forestry', 'Electricity'];
+    return deps.map(dep => {
+      const depComplaints = complaints.filter(c => c.department === dep);
+      return {
+        name: dep,
+        resolved: depComplaints.filter(c => c.status === 'Resolved').length,
+        pending: depComplaints.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected').length
+      }
+    });
+  }, [complaints]);
+
+  // Filter complaints based on search
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter(c => 
+      c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.department.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [complaints, searchQuery]);
+
+  const handleExportCSV = () => {
+    if (filteredComplaints.length === 0) {
+      toast.error("No data to export.");
+      return;
+    }
+    
+    const headers = ['ID', 'Title', 'Department', 'Priority', 'Status', 'Submitted At'];
+    const rows = filteredComplaints.map(c => [
+      c.id, 
+      `"${c.title.replace(/"/g, '""')}"`, // escape quotes
+      c.department, 
+      c.priority, 
+      c.status, 
+      c.submittedAt
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `district_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("CSV Export generated successfully!");
+  };
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
@@ -41,7 +87,7 @@ export default function DistrictDashboard() {
           <p className="text-slate-500 mt-2 font-medium">Cross-department analytics and real-time performance indexing.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="bg-white border-slate-200 text-slate-600 rounded-xl h-11 px-5 shadow-sm font-bold"><Download className="w-4 h-4 mr-2"/> Export Report</Button>
+          <Button onClick={handleExportCSV} variant="outline" className="bg-white border-slate-200 text-slate-600 rounded-xl h-11 px-5 shadow-sm font-bold"><Download className="w-4 h-4 mr-2"/> Export CSV</Button>
           <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-2xl border border-slate-200 shadow-sm">
              <div className="w-2 h-2 bg-[#6BAED6] rounded-full animate-ping" />
              <span className="text-sm font-bold text-[#6BAED6]">Live Grid</span>
@@ -71,8 +117,8 @@ export default function DistrictDashboard() {
               <div className="p-2 bg-[#DEEBF7] text-[#6BAED6] rounded-xl"><Clock className="w-5 h-5"/></div>
             </div>
             <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">24h 12m</span>
-              <div className="mt-2 text-sm font-semibold text-[#22C55E] flex items-center"><TrendingDown className="w-4 h-4 mr-1"/> 4h faster</div>
+              <span className="text-4xl font-black text-slate-800 tracking-tighter">18h 4m</span>
+              <div className="mt-2 text-sm font-semibold text-[#22C55E] flex items-center"><TrendingDown className="w-4 h-4 mr-1"/> 2h faster</div>
             </div>
           </CardContent>
         </Card>
@@ -110,11 +156,11 @@ export default function DistrictDashboard() {
         <div className="lg:col-span-2 space-y-8">
           <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
             <CardHeader className="border-b border-slate-100 p-6 pb-4">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Building2 className="w-5 h-5 mr-2 text-[#6BAED6]"/> Department Efficacy (Power BI Integration)</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Building2 className="w-5 h-5 mr-2 text-[#6BAED6]"/> Department Efficacy</CardTitle>
             </CardHeader>
             <CardContent className="p-6 h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <BarChart data={departmentStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12, fontWeight: 'bold'}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
@@ -134,7 +180,7 @@ export default function DistrictDashboard() {
               <div className="flex items-center gap-3 w-full md:w-auto">
                  <div className="relative w-full md:w-64">
                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                   <Input placeholder="Search Grid..." className="pl-9 h-10 bg-white border-slate-200 rounded-xl text-sm font-medium focus-visible:ring-[#6BAED6] shadow-sm" />
+                   <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search Grid..." className="pl-9 h-10 bg-white border-slate-200 rounded-xl text-sm font-medium focus-visible:ring-[#6BAED6] shadow-sm" />
                  </div>
                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-white border-slate-200 shadow-sm text-slate-500 hover:text-[#6BAED6]"><Filter className="w-4 h-4"/></Button>
               </div>
@@ -151,7 +197,7 @@ export default function DistrictDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                  {complaints.map(c => (
+                  {filteredComplaints.map(c => (
                     <tr key={c.id} className="hover:bg-[#F7FBFF] transition-colors group">
                       <td className="px-6 py-4 font-bold text-slate-800">{c.id}</td>
                       <td className="px-6 py-4 flex items-center"><Building2 className="w-4 h-4 mr-2 text-slate-400"/> {c.department}</td>
@@ -160,25 +206,25 @@ export default function DistrictDashboard() {
                         <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'} border-none shadow-none font-bold`}>{c.priority}</Badge>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge className={`${c.status === 'Resolved' ? 'bg-[#22C55E]/10 text-[#22C55E]' : c.status === 'In Progress' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#DEEBF7] text-[#6BAED6]'} border-none shadow-none font-bold`}>
+                        <Badge className={`${c.status === 'Resolved' ? 'bg-[#22C55E]/10 text-[#22C55E]' : c.status === 'In Progress' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : c.status === 'Rejected' ? 'bg-red-100 text-red-600' : 'bg-[#DEEBF7] text-[#6BAED6]'} border-none shadow-none font-bold`}>
                           {c.status}
                         </Badge>
                       </td>
                     </tr>
                   ))}
-                  {complaints.length === 0 && (
+                  {filteredComplaints.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-400 font-medium">No active operations found.</td>
+                      <td colSpan={5} className="text-center py-8 text-slate-400 font-medium">No records found matching your criteria.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-               <span>Showing {complaints.length} entries</span>
+               <span>Showing {filteredComplaints.length} entries</span>
                <div className="flex gap-2">
-                 <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white">Prev</Button>
-                 <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white">Next</Button>
+                 <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white" disabled>Prev</Button>
+                 <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white" disabled>Next</Button>
                </div>
             </div>
           </Card>

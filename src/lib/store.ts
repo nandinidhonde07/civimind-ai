@@ -29,23 +29,23 @@ export interface Complaint {
 
 interface CiviMindStore {
   complaints: Complaint[];
-  addComplaint: (complaint: Omit<Complaint, 'id' | 'status' | 'timeline' | 'submittedAt'>) => void;
-  updateStatus: (id: string, newStatus: ComplaintStatus) => void;
+  addComplaint: (complaint: Omit<Complaint, 'id' | 'status' | 'timeline' | 'submittedAt'>) => string;
+  updateStatus: (id: string, newStatus: ComplaintStatus, department?: string) => void;
   seedData: () => void;
   clearStore: () => void;
 }
 
-const generateId = () => `CIV-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+const generateId = () => `CIV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
 const MOCK_SEED: Complaint[] = [
   {
-    id: 'CIV-2026-847291',
+    id: 'CIV-2026-8472',
     title: 'Major Water Main Break',
     description: 'High pressure water erupting on 5th Avenue. Street is flooding rapidly.',
     location: 'Lat: 40.7128, Lng: -74.0060',
     hasImage: true,
     category: 'Infrastructure',
-    department: 'Public Works',
+    department: 'Water Board',
     priority: 'Critical',
     status: 'Pending Triage',
     timeline: [
@@ -58,7 +58,7 @@ const MOCK_SEED: Complaint[] = [
     submittedAt: new Date(Date.now() - 3600000).toISOString()
   },
   {
-    id: 'CIV-2026-928374',
+    id: 'CIV-2026-9283',
     title: 'Fallen Tree blocking Road',
     description: 'Large oak tree fell across Main Street during the storm.',
     location: 'Lat: 40.7282, Lng: -73.9942',
@@ -78,6 +78,65 @@ const MOCK_SEED: Complaint[] = [
     duplicateProbability: 15,
     estimatedResolution: '2 hours',
     submittedAt: new Date(Date.now() - 7200000).toISOString()
+  },
+  {
+    id: 'CIV-2026-1192',
+    title: 'Streetlights Out',
+    description: 'Entire block is completely dark on Elm Street, very dangerous for pedestrians.',
+    location: 'Lat: 40.7302, Lng: -73.9901',
+    hasImage: false,
+    category: 'Electrical',
+    department: 'Electricity',
+    priority: 'Medium',
+    status: 'Pending Triage',
+    timeline: [
+      { status: 'Complaint Submitted', timestamp: new Date(Date.now() - 86400000).toISOString() }
+    ],
+    authenticityScore: 45,
+    duplicateProbability: 95,
+    estimatedResolution: '24 hours',
+    submittedAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 'CIV-2026-4421',
+    title: 'Missed Garbage Collection',
+    description: 'Garbage bins overflowing, not collected for 3 days.',
+    location: 'Lat: 40.7410, Lng: -73.9890',
+    hasImage: true,
+    category: 'Sanitation',
+    department: 'Sanitation',
+    priority: 'Low',
+    status: 'Resolved',
+    timeline: [
+      { status: 'Complaint Submitted', timestamp: new Date(Date.now() - 172800000).toISOString() },
+      { status: 'In Progress', timestamp: new Date(Date.now() - 86400000).toISOString() },
+      { status: 'Resolved', timestamp: new Date(Date.now() - 3600000).toISOString() }
+    ],
+    authenticityScore: 92,
+    duplicateProbability: 10,
+    estimatedResolution: '2 days',
+    submittedAt: new Date(Date.now() - 172800000).toISOString(),
+    resolvedAt: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    id: 'CIV-2026-8833',
+    title: 'Massive Pothole',
+    description: 'Tire-popping pothole on the fast lane of I-95.',
+    location: 'Lat: 40.8110, Lng: -73.9290',
+    hasImage: true,
+    category: 'Roadways',
+    department: 'Public Works',
+    priority: 'Critical',
+    status: 'In Progress',
+    timeline: [
+      { status: 'Complaint Submitted', timestamp: new Date(Date.now() - 5000000).toISOString() },
+      { status: 'Officer Accepted', timestamp: new Date(Date.now() - 4000000).toISOString() },
+      { status: 'In Progress', timestamp: new Date(Date.now() - 2000000).toISOString() }
+    ],
+    authenticityScore: 99,
+    duplicateProbability: 12,
+    estimatedResolution: '8 hours',
+    submittedAt: new Date(Date.now() - 5000000).toISOString()
   }
 ];
 
@@ -86,38 +145,43 @@ export const useStore = create<CiviMindStore>()(
     (set) => ({
       complaints: [],
 
-      addComplaint: (data) => set((state) => {
+      addComplaint: (data) => {
+        const id = generateId();
         const now = new Date().toISOString();
         const newComplaint: Complaint = {
           ...data,
-          id: generateId(),
+          id,
           status: 'Pending Triage',
           submittedAt: now,
           timeline: [
             { status: 'Complaint Submitted', timestamp: now },
-            { status: 'AI Verified', timestamp: new Date(Date.now() + 2000).toISOString() } // Mocking AI delay
+            { status: 'AI Verified', timestamp: new Date(Date.now() + 1000).toISOString() },
+            { status: 'Department Assigned', timestamp: new Date(Date.now() + 2000).toISOString() }
           ]
         };
-        return { complaints: [newComplaint, ...state.complaints] };
-      }),
+        set((state) => ({ complaints: [newComplaint, ...state.complaints] }));
+        return id;
+      },
 
-      updateStatus: (id, newStatus) => set((state) => {
+      updateStatus: (id, newStatus, newDepartment) => set((state) => {
         const now = new Date().toISOString();
         const updatedComplaints = state.complaints.map(c => {
           if (c.id === id) {
             const newTimeline = [...c.timeline];
             
-            // Generate intermediate states for realistic demo timeline
             if (newStatus === 'In Progress' && c.status === 'Pending Triage') {
-               newTimeline.push({ status: 'Assigned to Department', timestamp: new Date(Date.now() - 5000).toISOString() });
                newTimeline.push({ status: 'Officer Accepted', timestamp: new Date(Date.now() - 2000).toISOString() });
             }
-            
-            newTimeline.push({ status: newStatus, timestamp: now });
+            if (newStatus === 'Transferred' && newDepartment) {
+               newTimeline.push({ status: `Transferred to ${newDepartment}`, timestamp: now });
+            } else {
+               newTimeline.push({ status: newStatus, timestamp: now });
+            }
             
             return {
               ...c,
-              status: newStatus,
+              status: newStatus === 'Transferred' ? 'Pending Triage' : newStatus, // if transferred, it goes back to pending for the new dept
+              department: newDepartment || c.department,
               timeline: newTimeline,
               resolvedAt: newStatus === 'Resolved' ? now : c.resolvedAt
             };

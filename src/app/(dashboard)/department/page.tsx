@@ -8,9 +8,10 @@ import {
   CheckCircle2, Clock, ListTodo, AlertTriangle, 
   ArrowRight, ShieldCheck, 
   TrendingUp, ArrowUpRight,
-  BrainCircuit, Users, Building2
+  BrainCircuit, Users, Building2, XCircle, ArrowLeftRight
 } from 'lucide-react';
-import { useStore, Complaint } from '@/lib/store';
+import { useStore, Complaint, ComplaintStatus } from '@/lib/store';
+import { toast } from 'sonner';
 
 export default function DepartmentDashboard() {
   const [selectedIncident, setSelectedIncident] = useState<Complaint | null>(null);
@@ -23,6 +24,23 @@ export default function DepartmentDashboard() {
   const resolved = complaints.filter(c => c.status === 'Resolved');
   
   const slaCompliance = complaints.length ? Math.round((resolved.length / complaints.length) * 100) : 100;
+
+  const handleAction = (id: string, newStatus: ComplaintStatus, actionName: string) => {
+    updateStatus(id, newStatus);
+    toast.success(`Complaint ${id} ${actionName} successfully!`);
+    
+    // Refresh selected incident
+    const updated = useStore.getState().complaints.find(c => c.id === id);
+    if (updated) setSelectedIncident(updated);
+  };
+
+  const handleTransfer = (id: string) => {
+    updateStatus(id, 'Transferred', 'District Authority');
+    toast.info(`Complaint ${id} transferred to District Authority.`);
+    
+    const updated = useStore.getState().complaints.find(c => c.id === id);
+    if (updated) setSelectedIncident(updated);
+  };
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
@@ -116,7 +134,7 @@ export default function DepartmentDashboard() {
                     {pending.map(c => (
                       <div key={c.id} onClick={() => setSelectedIncident(c)} className={`bg-white p-4 rounded-xl border ${selectedIncident?.id === c.id ? 'border-[#6BAED6] ring-2 ring-[#6BAED6]/20' : 'border-slate-200'} shadow-sm cursor-pointer hover:shadow-md transition-all group`}>
                          <div className="flex justify-between items-start mb-2">
-                           <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]' : 'bg-[#F59E0B]'} text-white shadow-sm font-bold px-2 py-0.5 text-[10px]`}>{c.priority}</Badge>
+                           <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]' : c.priority === 'High' ? 'bg-[#F59E0B]' : 'bg-slate-500'} text-white shadow-sm font-bold px-2 py-0.5 text-[10px]`}>{c.priority}</Badge>
                            <span className="text-[10px] font-bold text-slate-400 group-hover:text-[#6BAED6] transition-colors">{c.id}</span>
                          </div>
                          <h4 className="font-bold text-slate-800 text-sm mb-1">{c.title}</h4>
@@ -182,7 +200,7 @@ export default function DepartmentDashboard() {
                   <div>
                     <div className="flex justify-between items-start mb-2">
                       <Badge className="bg-slate-100 text-slate-600 border-none font-bold text-[10px]">{selectedIncident.id}</Badge>
-                      <Badge className={`${selectedIncident.priority === 'Critical' ? 'bg-[#EF4444]' : 'bg-[#F59E0B]'} text-white border-none font-bold text-[10px]`}>{selectedIncident.priority}</Badge>
+                      <Badge className={`${selectedIncident.priority === 'Critical' ? 'bg-[#EF4444]' : selectedIncident.priority === 'High' ? 'bg-[#F59E0B]' : 'bg-slate-500'} text-white border-none font-bold text-[10px]`}>{selectedIncident.priority}</Badge>
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 leading-tight">{selectedIncident.title}</h3>
                     <p className="text-sm text-slate-500 font-medium mt-2">{selectedIncident.description}</p>
@@ -194,8 +212,8 @@ export default function DepartmentDashboard() {
                       <span className={`text-xl font-black ${selectedIncident.authenticityScore >= 80 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>{selectedIncident.authenticityScore}%</span>
                     </div>
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-inner">
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Risk Profile</span>
-                      <span className="text-xl font-black text-[#EF4444]">High</span>
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Assigned To</span>
+                      <span className="text-sm font-black text-[#6BAED6]">{selectedIncident.department}</span>
                     </div>
                   </div>
                   
@@ -214,19 +232,36 @@ export default function DepartmentDashboard() {
                     
                     {selectedIncident.status === 'Pending Triage' && (
                       <>
-                        <Button onClick={() => updateStatus(selectedIncident.id, 'In Progress')} className="w-full bg-[#6BAED6] hover:bg-[#5a9ac0] text-white shadow-sm font-bold h-12 rounded-xl">
-                          Authorize Dispatch
+                        <Button onClick={() => handleAction(selectedIncident.id, 'In Progress', 'Accepted')} className="w-full bg-[#6BAED6] hover:bg-[#5a9ac0] text-white shadow-sm font-bold h-12 rounded-xl">
+                          <CheckCircle2 className="w-4 h-4 mr-2"/> Accept & Dispatch Officer
                         </Button>
-                        <Button variant="outline" className="w-full bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm font-bold h-12 rounded-xl">
-                          Transfer Department
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button onClick={() => handleTransfer(selectedIncident.id)} variant="outline" className="w-full bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm font-bold h-12 rounded-xl">
+                            <ArrowLeftRight className="w-4 h-4 mr-2"/> Transfer
+                          </Button>
+                          <Button onClick={() => handleAction(selectedIncident.id, 'Rejected', 'Rejected')} variant="outline" className="w-full bg-white border-red-200 text-red-600 hover:bg-red-50 shadow-sm font-bold h-12 rounded-xl">
+                            <XCircle className="w-4 h-4 mr-2"/> Reject
+                          </Button>
+                        </div>
                       </>
                     )}
 
                     {selectedIncident.status === 'In Progress' && (
-                      <Button onClick={() => updateStatus(selectedIncident.id, 'Resolved')} className="w-full bg-[#22C55E] hover:bg-[#1ea850] text-white shadow-sm font-bold h-12 rounded-xl">
+                      <Button onClick={() => handleAction(selectedIncident.id, 'Resolved', 'Resolved')} className="w-full bg-[#22C55E] hover:bg-[#1ea850] text-white shadow-sm font-bold h-12 rounded-xl">
                         <CheckCircle2 className="w-4 h-4 mr-2"/> Mark Resolved
                       </Button>
+                    )}
+
+                    {selectedIncident.status === 'Resolved' && (
+                       <div className="p-4 bg-[#22C55E]/10 rounded-xl border border-[#22C55E]/20 text-[#22C55E] font-bold text-sm flex items-center justify-center">
+                         <ShieldCheck className="w-5 h-5 mr-2"/> Case successfully closed.
+                       </div>
+                    )}
+                    
+                    {selectedIncident.status === 'Rejected' && (
+                       <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-red-600 font-bold text-sm flex items-center justify-center">
+                         <XCircle className="w-5 h-5 mr-2"/> Case rejected.
+                       </div>
                     )}
                   </div>
                 </div>
