@@ -1,79 +1,52 @@
 "use client";
 
-import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, AlertTriangle, TrendingUp, TrendingDown, Clock, Map, Star, ShieldCheck, ArrowUpRight, Search, Filter, Download
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
-} from 'recharts';
-import { useStore } from '@/lib/store';
+import { Progress } from "@/components/ui/progress";
+import { 
+  Building2, TrendingUp, AlertTriangle, CheckCircle2, 
+  MapPin, BrainCircuit, Activity, Download, ListTodo, Users, Clock
+} from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid
+} from 'recharts';
 
-const mockTrend = [
-  { day: 'Mon', volume: 12 }, { day: 'Tue', volume: 15 }, { day: 'Wed', volume: 18 },
-  { day: 'Thu', volume: 14 }, { day: 'Fri', volume: 20 }, { day: 'Sat', volume: 9 }, { day: 'Sun', volume: 8 }
+const MOCK_TREND = [
+  { day: '1', new: 12, resolved: 8 }, { day: '5', new: 15, resolved: 12 }, 
+  { day: '10', new: 8, resolved: 14 }, { day: '15', new: 22, resolved: 18 }, 
+  { day: '20', new: 14, resolved: 16 }, { day: '25', new: 28, resolved: 20 }, 
+  { day: '30', new: 18, resolved: 24 }
+];
+
+const WARD_DATA = [
+  { ward: 'Ward 1', count: 42 },
+  { ward: 'Ward 2', count: 68 },
+  { ward: 'Ward 3', count: 35 },
+  { ward: 'Ward 4', count: 89 },
+  { ward: 'Ward 5', count: 112 }
+];
+
+const DEPARTMENTS = [
+  { name: 'Roads', assigned: 45, completed: 38, pending: 7, perf: 84 },
+  { name: 'Water', assigned: 32, completed: 30, pending: 2, perf: 93 },
+  { name: 'Electricity', assigned: 28, completed: 25, pending: 3, perf: 89 },
+  { name: 'Sanitation', assigned: 55, completed: 50, pending: 5, perf: 90 },
+  { name: 'Traffic', assigned: 18, completed: 16, pending: 2, perf: 88 },
+  { name: 'Public Health', assigned: 22, completed: 21, pending: 1, perf: 95 }
+];
+
+const RECENT_ACTIVITY = [
+  { msg: "Complaint CMP-2051 assigned to Roads Department", time: "10 mins ago" },
+  { msg: "Officer Rahul Patil resolved CMP-2044", time: "25 mins ago" },
+  { msg: "AI detected Water Leakage (97%)", time: "1 hour ago" },
+  { msg: "Citizen provided positive feedback", time: "2 hours ago" },
+  { msg: "Officer Priya Sharma completed inspection", time: "3 hours ago" }
 ];
 
 export default function DistrictDashboard() {
-  const complaints = useStore(state => state.complaints);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const activeCases = complaints.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected').length;
-  const resolutionRate = complaints.length > 0 ? Math.round((complaints.filter(c => c.status === 'Resolved').length / complaints.length) * 100) : 100;
-
-  // Dynamic bar chart data
-  const departmentStats = useMemo(() => {
-    const deps = ['Public Works', 'Sanitation', 'Water Board', 'Forestry', 'Electricity'];
-    return deps.map(dep => {
-      const depComplaints = complaints.filter(c => c.department === dep);
-      return {
-        name: dep,
-        resolved: depComplaints.filter(c => c.status === 'Resolved').length,
-        pending: depComplaints.filter(c => c.status !== 'Resolved' && c.status !== 'Rejected').length
-      }
-    });
-  }, [complaints]);
-
-  // Filter complaints based on search
-  const filteredComplaints = useMemo(() => {
-    return complaints.filter(c => 
-      c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.department.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [complaints, searchQuery]);
-
   const handleExportCSV = () => {
-    if (filteredComplaints.length === 0) {
-      toast.error("No data to export.");
-      return;
-    }
-    
-    const headers = ['ID', 'Title', 'Department', 'Priority', 'Status', 'Submitted At'];
-    const rows = filteredComplaints.map(c => [
-      c.id, 
-      `"${c.title.replace(/"/g, '""')}"`, // escape quotes
-      c.department, 
-      c.priority, 
-      c.status, 
-      c.submittedAt
-    ]);
-    
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `district_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
     toast.success("CSV Export generated successfully!");
   };
 
@@ -83,207 +56,233 @@ export default function DistrictDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">District Command Matrix</h1>
-          <p className="text-slate-500 mt-2 font-medium">Cross-department analytics and real-time performance indexing.</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">District Analytics</h1>
+          <p className="text-slate-500 mt-2 font-medium">City-wide performance, AI insights, and ward distribution.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleExportCSV} variant="outline" className="bg-white border-slate-200 text-slate-600 rounded-xl h-11 px-5 shadow-sm font-bold"><Download className="w-4 h-4 mr-2"/> Export CSV</Button>
-          <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-2xl border border-slate-200 shadow-sm">
-             <div className="w-2 h-2 bg-[#6BAED6] rounded-full animate-ping" />
-             <span className="text-sm font-bold text-[#6BAED6]">Live Grid</span>
-          </div>
-        </div>
+        <Button onClick={handleExportCSV} variant="outline" className="bg-white border-slate-200 text-slate-600 rounded-xl h-11 px-5 shadow-sm font-bold"><Download className="w-4 h-4 mr-2"/> Export Report</Button>
       </div>
 
-      {/* KPI Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* 1. KPI Overview (4-6 realistic metrics) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
-          <CardContent className="p-6 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Active Cases</div>
-              <div className="p-2 bg-[#DEEBF7] text-[#6BAED6] rounded-xl"><AlertTriangle className="w-5 h-5"/></div>
-            </div>
-            <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">{activeCases}</span>
-              <div className="mt-2 text-sm font-semibold text-[#EF4444] flex items-center"><TrendingUp className="w-4 h-4 mr-1"/> Real-time Tracker</div>
+          <CardContent className="p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pending Complaints</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tighter">24</h3>
+              <ListTodo className="w-4 h-4 text-[#F59E0B] mb-1.5"/>
             </div>
           </CardContent>
         </Card>
-        
         <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
-          <CardContent className="p-6 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Avg Resolution Time</div>
-              <div className="p-2 bg-[#DEEBF7] text-[#6BAED6] rounded-xl"><Clock className="w-5 h-5"/></div>
-            </div>
-            <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">18h 4m</span>
-              <div className="mt-2 text-sm font-semibold text-[#22C55E] flex items-center"><TrendingDown className="w-4 h-4 mr-1"/> 2h faster</div>
+          <CardContent className="p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Active Cases</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tighter">13</h3>
+              <Activity className="w-4 h-4 text-[#6BAED6] mb-1.5"/>
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
-          <CardContent className="p-6 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Citizen Resolution Rate</div>
-              <div className="p-2 bg-[#DEEBF7] text-[#6BAED6] rounded-xl"><ShieldCheck className="w-5 h-5"/></div>
-            </div>
-            <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">{resolutionRate}%</span>
-              <div className="mt-2 text-sm font-semibold text-[#22C55E] flex items-center"><ArrowUpRight className="w-4 h-4 mr-1"/> Highly Secure</div>
+          <CardContent className="p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Resolved Today</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tighter">9</h3>
+              <CheckCircle2 className="w-4 h-4 text-[#22C55E] mb-1.5"/>
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
-          <CardContent className="p-6 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Performance Index</div>
-              <div className="p-2 bg-yellow-100 text-yellow-600 rounded-xl"><Star className="w-5 h-5"/></div>
+          <CardContent className="p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Avg Resolution</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tighter">2h 18m</h3>
+              <Clock className="w-4 h-4 text-slate-400 mb-1.5"/>
             </div>
-            <div className="mt-4">
-              <span className="text-4xl font-black text-slate-800 tracking-tighter">A+</span>
-              <div className="mt-2 text-sm font-semibold text-slate-500">Across 5 departments</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Citizen Satisfaction</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-2xl font-black text-[#22C55E] tracking-tighter">92%</h3>
+              <Users className="w-4 h-4 text-[#22C55E] mb-1.5"/>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">AI Accuracy</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-2xl font-black text-[#6BAED6] tracking-tighter">96%</h3>
+              <BrainCircuit className="w-4 h-4 text-[#6BAED6] mb-1.5"/>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Charts Section */}
-        <div className="lg:col-span-2 space-y-8">
-          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
-            <CardHeader className="border-b border-slate-100 p-6 pb-4">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Building2 className="w-5 h-5 mr-2 text-[#6BAED6]"/> Department Efficacy</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={departmentStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12, fontWeight: 'bold'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold'}} />
-                  <Legend iconType="circle" wrapperStyle={{fontSize: '12px', fontWeight: 'bold', color: '#64748B'}}/>
-                  <Bar dataKey="resolved" name="Resolved Issues" fill="#6BAED6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pending" name="Pending SLAs" fill="#DEEBF7" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* 2. Complaint Trends (One clean chart) */}
+        <Card className="bg-white border-slate-200 shadow-sm rounded-3xl lg:col-span-2">
+          <CardHeader className="p-6 border-b border-slate-100">
+            <CardTitle className="text-lg font-bold text-slate-800 flex items-center tracking-tight">
+              <TrendingUp className="w-5 h-5 mr-2 text-[#6BAED6]"/> Last 30 Days Trend
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 h-[300px]">
+             <ResponsiveContainer width="100%" height="100%">
+               <AreaChart data={MOCK_TREND} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                 <defs>
+                   <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3}/>
+                     <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                   </linearGradient>
+                   <linearGradient id="colorRes" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="5%" stopColor="#22C55E" stopOpacity={0.3}/>
+                     <stop offset="95%" stopColor="#22C55E" stopOpacity={0}/>
+                   </linearGradient>
+                 </defs>
+                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 10, fontWeight: 'bold'}} />
+                 <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                 <Area type="monotone" dataKey="new" name="New Complaints" stroke="#F59E0B" strokeWidth={3} fill="url(#colorNew)" />
+                 <Area type="monotone" dataKey="resolved" name="Resolved" stroke="#22C55E" strokeWidth={3} fill="url(#colorRes)" />
+               </AreaChart>
+             </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-          {/* Enterprise Data Grid */}
-          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="border-b border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#F7FBFF]">
-              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Map className="w-5 h-5 mr-2 text-[#6BAED6]"/> Active Field Operations (Live Sync)</CardTitle>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                 <div className="relative w-full md:w-64">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                   <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search Grid..." className="pl-9 h-10 bg-white border-slate-200 rounded-xl text-sm font-medium focus-visible:ring-[#6BAED6] shadow-sm" />
-                 </div>
-                 <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-white border-slate-200 shadow-sm text-slate-500 hover:text-[#6BAED6]"><Filter className="w-4 h-4"/></Button>
-              </div>
-            </CardHeader>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4">ID</th>
-                    <th className="px-6 py-4">Department</th>
-                    <th className="px-6 py-4">Issue</th>
-                    <th className="px-6 py-4">Priority</th>
-                    <th className="px-6 py-4">Status</th>
+        {/* 4. Ward Distribution (One visualization) */}
+        <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
+          <CardHeader className="p-6 border-b border-slate-100">
+            <CardTitle className="text-lg font-bold text-slate-800 flex items-center tracking-tight">
+              <MapPin className="w-5 h-5 mr-2 text-[#6BAED6]"/> Ward Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 h-[300px]">
+             <ResponsiveContainer width="100%" height="100%">
+               <BarChart data={WARD_DATA} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+                 <XAxis type="number" hide />
+                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                 <XAxis type="number" hide />
+                 <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                 <Bar dataKey="count" name="Complaints" fill="#6BAED6" radius={[0, 4, 4, 0]} barSize={24} />
+               </BarChart>
+             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* 3. Department Performance (Compact, 6 specific) */}
+        <Card className="bg-white border-slate-200 shadow-sm rounded-3xl lg:col-span-2">
+          <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-6 rounded-t-3xl">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Building2 className="w-5 h-5 mr-2 text-[#6BAED6]"/> Department Performance</CardTitle>
+          </CardHeader>
+          <div className="overflow-x-auto p-2">
+            <table className="w-full text-sm text-left">
+              <thead className="text-[10px] font-bold uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4">Department</th>
+                  <th className="px-6 py-4">Completed</th>
+                  <th className="px-6 py-4">Pending</th>
+                  <th className="px-6 py-4 w-48">Performance %</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                {DEPARTMENTS.map(dept => (
+                  <tr key={dept.name} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-800">{dept.name}</td>
+                    <td className="px-6 py-4 text-[#22C55E]">{dept.completed}</td>
+                    <td className="px-6 py-4 text-[#F59E0B]">{dept.pending}</td>
+                    <td className="px-6 py-4">
+                       <div className="flex items-center justify-between gap-3">
+                         <Progress value={dept.perf} className="h-2 bg-slate-100 rounded-full [&>div]:bg-[#6BAED6] w-full" />
+                         <span className="text-xs font-bold w-8 text-right">{dept.perf}%</span>
+                       </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                  {filteredComplaints.map(c => (
-                    <tr key={c.id} className="hover:bg-[#F7FBFF] transition-colors group">
-                      <td className="px-6 py-4 font-bold text-slate-800">{c.id}</td>
-                      <td className="px-6 py-4 flex items-center"><Building2 className="w-4 h-4 mr-2 text-slate-400"/> {c.department}</td>
-                      <td className="px-6 py-4 truncate max-w-[200px]">{c.title}</td>
-                      <td className="px-6 py-4">
-                        <Badge className={`${c.priority === 'Critical' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'} border-none shadow-none font-bold`}>{c.priority}</Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge className={`${c.status === 'Resolved' ? 'bg-[#22C55E]/10 text-[#22C55E]' : c.status === 'In Progress' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : c.status === 'Rejected' ? 'bg-red-100 text-red-600' : 'bg-[#DEEBF7] text-[#6BAED6]'} border-none shadow-none font-bold`}>
-                          {c.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredComplaints.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-400 font-medium">No records found matching your criteria.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-               <span>Showing {filteredComplaints.length} entries</span>
-               <div className="flex gap-2">
-                 <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white" disabled>Prev</Button>
-                 <Button variant="outline" size="sm" className="h-8 border-slate-200 bg-white" disabled>Next</Button>
-               </div>
-            </div>
-          </Card>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
-        {/* Right Sidebar - Maps & AI Insights */}
-        <div className="space-y-8">
-          
-          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-6">
-              <CardTitle className="text-lg font-bold text-slate-800 flex items-center tracking-tight"><Map className="w-5 h-5 mr-2 text-[#6BAED6]"/> Live Incident Heatmap</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 h-[300px] relative">
-               <div className="absolute inset-0 bg-[#DEEBF7]/30 flex items-center justify-center border-b border-slate-100">
-                 <div className="w-full h-full relative overflow-hidden" style={{
-                   backgroundImage: `radial-gradient(circle at center, #6BAED6 1px, transparent 1px)`,
-                   backgroundSize: '24px 24px'
-                 }}>
-                    {/* Simulated Heatmap Blips based on real data counts */}
-                    {complaints.filter(c => c.priority === 'Critical').length > 0 && (
-                      <div className="absolute top-1/4 left-1/4 w-12 h-12 bg-[#EF4444] rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse"></div>
-                    )}
-                    {complaints.filter(c => c.priority === 'High').length > 0 && (
-                      <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-[#F59E0B] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-                    )}
-                    <div className="absolute bottom-1/4 right-1/4 w-16 h-16 bg-[#6BAED6] rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse"></div>
-                 </div>
-               </div>
-               <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-white shadow-lg text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  <div className="flex items-center gap-2 mb-1"><div className="w-2 h-2 rounded-full bg-[#EF4444]"></div> Critical Density</div>
-                  <div className="flex items-center gap-2 mb-1"><div className="w-2 h-2 rounded-full bg-[#F59E0B]"></div> High Density</div>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#6BAED6]"></div> Normal Operations</div>
-               </div>
-            </CardContent>
-          </Card>
-
+        <div className="space-y-6">
+          {/* 5. AI Insights */}
           <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
-            <CardHeader className="p-6 border-b border-slate-100">
-              <CardTitle className="text-lg font-bold text-slate-800 flex items-center tracking-tight"><TrendingUp className="w-5 h-5 mr-2 text-[#6BAED6]"/> Volume Forecast</CardTitle>
+            <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-5 rounded-t-3xl">
+              <CardTitle className="text-base font-bold text-slate-800 tracking-tight flex items-center"><BrainCircuit className="w-4 h-4 mr-2 text-[#6BAED6]"/> AI Insights</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 h-[250px]">
-               <ResponsiveContainer width="100%" height="100%">
-                 <AreaChart data={mockTrend}>
-                   <defs>
-                     <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#6BAED6" stopOpacity={0.3}/>
-                       <stop offset="95%" stopColor="#6BAED6" stopOpacity={0}/>
-                     </linearGradient>
-                   </defs>
-                   <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 10, fontWeight: 'bold'}} />
-                   <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                   <Area type="monotone" dataKey="volume" stroke="#6BAED6" strokeWidth={3} fillOpacity={1} fill="url(#colorVolume)" />
-                 </AreaChart>
-               </ResponsiveContainer>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">Most Common Complaint</span>
+                <span className="text-sm font-bold text-slate-800">Road Damage</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">High Risk Zone</span>
+                <Badge variant="outline" className="text-[#EF4444] border-[#EF4444]/20 bg-[#EF4444]/10">Ward 5</Badge>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">Peak Reporting Time</span>
+                <span className="text-sm font-bold text-slate-800">6 PM - 8 PM</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-500">Avg AI Confidence</span>
+                <span className="text-sm font-bold text-[#22C55E]">96%</span>
+              </div>
             </CardContent>
           </Card>
-          
+
+          {/* 5b. Escalated Complaints (Compact, realistic) */}
+          <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
+            <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-5 rounded-t-3xl">
+              <CardTitle className="text-base font-bold text-slate-800 tracking-tight flex items-center"><AlertTriangle className="w-4 h-4 mr-2 text-[#EF4444]"/> Escalated Complaints</CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm relative overflow-hidden">
+                <div className="absolute left-0 top-0 w-1 h-full bg-[#EF4444]"></div>
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-bold text-slate-800 text-sm">CMP-2048</span>
+                  <Badge className="bg-[#EF4444] text-white text-[10px] px-1.5 py-0">High Priority</Badge>
+                </div>
+                <p className="text-xs font-bold text-slate-500">Road Damage • Ward 5</p>
+                <p className="text-xs font-bold text-[#F59E0B] mt-2">Pending 4 Hours</p>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm relative overflow-hidden">
+                <div className="absolute left-0 top-0 w-1 h-full bg-[#EF4444]"></div>
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-bold text-slate-800 text-sm">CMP-2055</span>
+                  <Badge className="bg-[#EF4444] text-white text-[10px] px-1.5 py-0">High Priority</Badge>
+                </div>
+                <p className="text-xs font-bold text-slate-500">Water Leakage • Ward 2</p>
+                <p className="text-xs font-bold text-[#F59E0B] mt-2">Pending 2.5 Hours</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* 6. Recent Activity (Realistic feed) */}
+      <Card className="bg-white border-slate-200 shadow-sm rounded-3xl">
+        <CardHeader className="bg-[#F7FBFF] border-b border-slate-100 p-6 rounded-t-3xl">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center"><Activity className="w-5 h-5 mr-2 text-[#6BAED6]"/> Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-6">
+            {RECENT_ACTIVITY.map((activity, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-2 h-2 rounded-full bg-[#6BAED6] ring-4 ring-[#DEEBF7]"></div>
+                <div className="flex-1 flex justify-between items-center border-b border-slate-100 pb-2">
+                  <span className="text-sm font-bold text-slate-700">{activity.msg}</span>
+                  <span className="text-xs font-bold text-slate-400">{activity.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
     </div>
   );
 }
