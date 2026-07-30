@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/purity */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Minimize2, Send, Bot, User, BrainCircuit } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { MessageCircle, X, Minimize2, Send, Bot, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 interface Message {
@@ -16,89 +17,105 @@ interface Message {
   timestamp: string;
 }
 
-const QUICK_REPLIES = [
-  "Report a Pothole",
-  "Water Leakage",
-  "Check Complaint Status",
-  "How does AI Detection work?",
-  "Emergency Contacts"
-];
+const getRoleContext = (pathname: string | null) => {
+  if (!pathname) return 'citizen';
+  if (pathname.includes('department')) return 'department';
+  if (pathname.includes('district')) return 'district';
+  if (pathname.includes('admin')) return 'admin';
+  return 'citizen';
+};
 
-const getAIResponse = (input: string, contextMemory: string[]): string => {
+const getRoleDetails = (role: string) => {
+  switch(role) {
+    case 'department': return {
+      title: "Department Ops Assistant",
+      initialMessage: "👋 Welcome Commander. I am your Department AI. I can assist with ticket triaging, field officer dispatch, and SLA compliance. How can we optimize operations today?",
+      quickReplies: ["Pending Tickets", "SLA Status", "Dispatch Officer", "Clear Kanban"]
+    };
+    case 'district': return {
+      title: "District Analytics AI",
+      initialMessage: "👋 Hello District Official. I am your Analytics AI. I can generate reports, analyze department performance, and export global CSV data. What insights do you need?",
+      quickReplies: ["Export CSV", "Best Department", "Weekly Volume", "Critical Issues"]
+    };
+    case 'admin': return {
+      title: "Super Admin AI",
+      initialMessage: "👋 System Admin recognized. I monitor global database health, API tokens, and allow status overrides. How can I assist with platform maintenance?",
+      quickReplies: ["System Health", "Override Status", "Purge Database", "Active Nodes"]
+    };
+    default: return {
+      title: "Citizen Assistant",
+      initialMessage: "👋 Hello! I'm your CiviMind AI Assistant.\n\nI can help you:\n• Report civic issues\n• Track complaint status\n• Explain departments\n• Guide you through the portal",
+      quickReplies: ["Report a Pothole", "Water Leakage", "Check Complaint Status", "Emergency"]
+    };
+  }
+};
+
+const getAIResponse = (input: string, contextMemory: string[], role: string): string => {
   const lower = input.toLowerCase();
 
   // Greetings
   if (lower.match(/^(hi|hello|hey|good morning|good evening)/)) {
-    return "Hello! How can I assist you with CiviMind's municipal services today?";
+    return "Hello! How can I assist you in the " + role + " portal today?";
   }
 
-  // Demo Integration & Capabilities
-  if (lower.includes("how do i report") || lower.includes("how to report")) {
-    return "To report a complaint: 1. Capture a photo. 2. AI Detection analyzes it. 3. Automatic Department Assignment. 4. Officer Review. 5. Resolution & Citizen Notification.";
-  }
-  if (lower.includes("what departments are available") || lower.includes("list departments")) {
-    return "CiviMind routes issues to: Roads, Water, Electricity, Sanitation, Traffic, and Public Health.";
-  }
-  if (lower.includes("how does ai work") || lower.includes("ai detection") || lower.includes("camera") || lower.includes("detect") || lower.includes("recognition")) {
-    return "CiviMind AI analyzes uploaded images using object detection, estimates confidence, classifies the issue, predicts severity, and routes the complaint to the appropriate department.";
-  }
-  if (lower.includes("what can i do here") || lower.includes("capabilities")) {
-    return "Citizens can report and track issues. Department Officers can review and resolve tickets. District Officials can view analytics, and Super Admins manage system health and overrides.";
+  // Common Citizen / Generic queries
+  if (lower.includes("how do i report") || lower.includes("how to report")) return "To report a complaint: 1. Capture a photo. 2. AI Detection analyzes it. 3. Automatic Assignment.";
+  if (lower.includes("status") || lower.includes("track") || lower.includes("cmp")) return "Complaint ID: CMP-2048\n\nStatus: In Progress\nAssigned Officer: Rahul Patil\nExpected Resolution: Today before 6:00 PM";
+  if (lower.includes("ai detection") || lower.includes("camera") || lower.includes("detect")) return "CiviMind AI analyzes images using object detection, estimates confidence, and predicts severity to route complaints.";
+
+  // Role-specific smart routing
+  if (role === 'department') {
+    if (lower.includes("pending") || lower.includes("ticket")) return "You have several tickets in Pending Triage. Review the critical ones highlighted in red and click 'Accept Assignment' to deploy field officers.";
+    if (lower.includes("dispatch") || lower.includes("officer")) return "Once you accept a ticket, an automated dispatch protocol alerts the nearest available field unit.";
+    if (lower.includes("sla")) return "Your current SLA compliance is calculated based on tickets resolved within their target 4 to 12 hour windows.";
+  } else if (role === 'district') {
+    if (lower.includes("export") || lower.includes("csv")) return "You can export the entire data grid by clicking the 'Export Global Data' button at the top right of your dashboard.";
+    if (lower.includes("best") || lower.includes("performance")) return "The Live Department Efficacy chart shows Public Works currently has the highest resolution rate.";
+    if (lower.includes("volume") || lower.includes("trend")) return "Complaint volumes typically peak on Mondays. Check the 7-Day Complaint Volume chart for precise metrics.";
+  } else if (role === 'admin') {
+    if (lower.includes("health") || lower.includes("system") || lower.includes("uptime")) return "All systems are operational. Uptime is 99.9%. Database latency is < 20ms.";
+    if (lower.includes("override") || lower.includes("status")) return "You can click on any status badge in the Global Incident Records table to force an override without department approval.";
+    if (lower.includes("purge") || lower.includes("delete")) return "Warning: Purging the database will wipe all Zustand global state. Seed data will regenerate on the next citizen login.";
   }
 
-  // Status & Tracking (Memory context support)
-  if (lower.includes("status") || lower.includes("track") || lower.includes("cmp") || lower.includes("ticket")) {
-    if (contextMemory.includes("water") || contextMemory.includes("leakage")) {
-      return "Your previously discussed water leakage complaint is currently assigned to the Water Department and is being processed.";
-    }
-    return "Complaint ID: CMP-2048\n\nStatus: In Progress\nDepartment: Roads\nAssigned Officer: Rahul Patil\nExpected Resolution: Today before 6:00 PM";
+  // Advanced Dynamic Fallback (Generative Fake)
+  // Extracts key words to formulate a smart-sounding answer
+  const words = lower.split(' ').filter(w => w.length > 4 && !['about', 'would', 'could', 'should', 'there', 'their'].includes(w));
+  if (words.length > 0) {
+    const topic = words[0];
+    return `Regarding "${topic}", our CiviMind AI handles this by analyzing the context and routing data through our real-time state engine. As a ${role}, you can monitor or manage ${topic}-related metrics directly through your active dashboard panels. Do you need specific analytics on this?`;
   }
 
-  // Department specific routing
-  if (lower.includes("road") || lower.includes("pothole") || lower.includes("crack") || lower.includes("damage") || lower.includes("street")) {
-    return "The Roads Department handles pavement issues. Please navigate to the 'Submit Issue' tab and upload a clear photo of the pothole or damage for immediate AI triage.";
-  }
-  if (lower.includes("water") || lower.includes("leakage") || lower.includes("pipe") || lower.includes("tap") || lower.includes("burst")) {
-    return "The Water Board handles leaks. CiviMind AI will prioritize severe burst pipes automatically. Please submit a report with location data.";
-  }
-  if (lower.includes("streetlight") || lower.includes("electricity") || lower.includes("power") || lower.includes("transformer") || lower.includes("electric")) {
-    return "Electricity-related complaints are routed to the Power Grid. Critical hazards (like fallen transformers) receive an immediate 4-hour SLA.";
-  }
-  if (lower.includes("garbage") || lower.includes("waste") || lower.includes("trash") || lower.includes("dumping") || lower.includes("drainage")) {
-    return "Sanitation complaints are batched and routed to local waste management units. AI will verify the scale of the waste accumulation from your photo.";
-  }
-  if (lower.includes("traffic") || lower.includes("signal") || lower.includes("parking") || lower.includes("congestion")) {
-    return "Traffic Department officers will review signal malfunctions and severe congestion reports. Ensure you provide accurate GPS data.";
-  }
-  if (lower.includes("mosquito") || lower.includes("hygiene") || lower.includes("dead animal") || lower.includes("health")) {
-    return "Public Health hazards are escalated immediately to the local health ward. Please report this through the Citizen portal right away.";
-  }
-  if (lower.includes("emergency")) {
-    return "For life-threatening emergencies, please immediately dial 112 or your local emergency services hotline. CiviMind is for municipal infrastructure requests.";
-  }
-
-  return "I'm still learning. Currently I can help with complaint reporting, complaint tracking, AI detection, departments, and portal guidance.";
+  return "I am processing your request. CiviMind's architecture ensures all operations are securely logged. Can you provide more specific details so I can assist you better?";
 };
 
 export function Chatbot() {
+  const pathname = usePathname();
+  const role = getRoleContext(pathname);
+  const { title, initialMessage, quickReplies } = getRoleDetails(role);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      sender: 'ai',
-      text: "👋 Hello! I'm your CiviMind AI Assistant.\n\nI can help you:\n• Report civic issues\n• Track complaint status\n• Explain departments\n• Guide you through the portal\n• Answer Smart City questions",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
-  
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [memoryContext, setMemoryContext] = useState<string[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize role-specific chat
+  useEffect(() => {
+    setMessages([
+      {
+        id: 'welcome-' + role,
+        sender: 'ai',
+        text: initialMessage,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  }, [role, initialMessage]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -128,13 +145,11 @@ export function Chatbot() {
     setInputValue("");
     setIsTyping(true);
 
-    // Update session memory
     const newContext = text.toLowerCase().split(' ').filter(word => word.length > 3);
     setMemoryContext(prev => [...prev, ...newContext]);
 
-    // Simulate network/typing delay
     setTimeout(() => {
-      const responseText = getAIResponse(text, memoryContext);
+      const responseText = getAIResponse(text, memoryContext, role);
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
@@ -168,7 +183,6 @@ export function Chatbot() {
   return (
     <Card className={`fixed right-6 bottom-6 w-[380px] shadow-2xl border-slate-200 z-50 flex flex-col transition-all duration-300 ease-in-out bg-white overflow-hidden ${isMinimized ? 'h-[72px]' : 'h-[600px] max-h-[80vh]'}`}>
       
-      {/* Header */}
       <CardHeader className="bg-[#6BAED6] p-4 flex flex-row items-center justify-between shrink-0 m-0 rounded-t-xl cursor-pointer" onClick={() => isMinimized && setIsMinimized(false)}>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -178,7 +192,7 @@ export function Chatbot() {
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#22C55E] rounded-full border-2 border-[#6BAED6]"></div>
           </div>
           <div className="flex flex-col">
-            <h3 className="font-bold text-white text-base leading-tight">CiviMind AI Assistant</h3>
+            <h3 className="font-bold text-white text-base leading-tight">{title}</h3>
             <span className="text-white/80 text-xs font-medium">Online • Local Engine</span>
           </div>
         </div>
@@ -194,7 +208,6 @@ export function Chatbot() {
 
       {!isMinimized && (
         <>
-          {/* Chat Area */}
           <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4 scroll-smooth" ref={scrollRef}>
             {messages.map((msg) => (
               <div key={msg.id} className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -238,10 +251,9 @@ export function Chatbot() {
             )}
           </div>
 
-          {/* Quick Replies (Only show if latest message is from AI and no user typing) */}
           {messages.length > 0 && messages[messages.length - 1].sender === 'ai' && !isTyping && !inputValue && (
             <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex gap-2 overflow-x-auto no-scrollbar shadow-inner">
-               {QUICK_REPLIES.map((reply, i) => (
+               {quickReplies.map((reply, i) => (
                  <Badge 
                    key={i} 
                    onClick={() => handleSendMessage(reply)}
@@ -254,7 +266,6 @@ export function Chatbot() {
             </div>
           )}
 
-          {/* Input Area */}
           <div className="p-4 bg-white border-t border-slate-200 shrink-0">
             <div className="relative flex items-center">
               <Input
